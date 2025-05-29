@@ -3,28 +3,47 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { questions, answers, comments, users } from "@/lib/schema"
-import { desc, eq, sql, and } from "drizzle-orm"
+import { desc, eq, sql, and, or, ilike } from "drizzle-orm"
+import { z } from "zod"
+
+// Input validation schema
+const createQuestionSchema = z.object({
+  title: z.string().min(5).max(200),
+  content: z.string().min(10).max(5000),
+  category: z.enum(["Faith", "Practices", "Theology", "History", "General"]),
+})
 
 export async function GET(request: NextRequest) {
   try {
+    const database = db()
+    if (!database) {
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 503 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")
     const category = searchParams.get("category")
     const status = searchParams.get("status") || "published"
 
-    const whereConditions = [eq(questions.status, status)]
+    const whereConditions = [eq(questions.status, status as any)]
 
     if (search) {
       whereConditions.push(
-        sql`${questions.title} ILIKE ${`%${search}%`} OR ${questions.content} ILIKE ${`%${search}%`}`,
+        or(
+          ilike(questions.title, `%${search}%`),
+          ilike(questions.content, `%${search}%`)
+        )!
       )
     }
 
     if (category && category !== "all") {
-      whereConditions.push(eq(questions.category, category))
+      whereConditions.push(eq(questions.category, category as any))
     }
 
-    const questionsWithCounts = await db
+    const questionsWithCounts = await database
       .select({
         id: questions.id,
         title: questions.title,
@@ -32,7 +51,7 @@ export async function GET(request: NextRequest) {
         authorId: questions.authorId,
         status: questions.status,
         category: questions.category,
-        likes: questions.likes,
+        votes: questions.votes, // Changed from likes
         createdAt: questions.createdAt,
         updatedAt: questions.updatedAt,
         author: users.name,
@@ -51,7 +70,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(questionsWithCounts)
   } catch (error) {
     console.error("Error fetching questions:", error)
-    return NextResponse.json({ error: "Failed to fetch questions" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to fetch questions" },
+      { status: 500 }
+    )
   }
 }
 
@@ -59,17 +81,36 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      )
+    }
+
+    const database = db()
+    if (!database) {
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 503 }
+      )
     }
 
     const body = await request.json()
-    const { title, content, category } = body
+    const validationResult = createQuestionSchema.safeParse(body)
 
-    if (!title || !content || !category) {
-      return NextResponse.json({ error: "Title, content, and category are required" }, { status: 400 })
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          error: "Invalid input", 
+          details: validationResult.error.flatten() 
+        },
+        { status: 400 }
+      )
     }
 
-    const [newQuestion] = await db
+    const { title, content, category } = validationResult.data
+
+    const [newQuestion] = await database
       .insert(questions)
       .values({
         title,
@@ -83,6 +124,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newQuestion, { status: 201 })
   } catch (error) {
     console.error("Error creating question:", error)
-    return NextResponse.json({ error: "Failed to create question" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to create question" },
+      { status: 500 }
+    )
   }
 }

@@ -22,7 +22,8 @@ export function AdminQuestions() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await fetch(`/api/questions/${id}`, {
+      // Fixed: Use the correct admin endpoint
+      const response = await fetch(`/api/admin/questions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -34,8 +35,13 @@ export function AdminQuestions() {
       queryClient.invalidateQueries({ queryKey: ["admin-questions"] })
       toast({ title: "Question updated successfully" })
     },
-    onError: () => {
-      toast({ title: "Failed to update question", variant: "destructive" })
+    onError: (error) => {
+      console.error("Update error:", error)
+      toast({ 
+        title: "Failed to update question", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive" 
+      })
     },
   })
 
@@ -45,18 +51,37 @@ export function AdminQuestions() {
         method: "DELETE",
       })
       if (!response.ok) throw new Error("Failed to delete question")
+      return response.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-questions"] })
       toast({ title: "Question deleted successfully" })
     },
-    onError: () => {
-      toast({ title: "Failed to delete question", variant: "destructive" })
+    onError: (error) => {
+      console.error("Delete error:", error)
+      toast({ 
+        title: "Failed to delete question", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive" 
+      })
     },
   })
 
   if (isLoading) {
     return <div>Loading questions...</div>
+  }
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "published":
+        return "default"
+      case "pending":
+        return "secondary"
+      case "rejected":
+        return "destructive"
+      default:
+        return "secondary"
+    }
   }
 
   return (
@@ -72,15 +97,19 @@ export function AdminQuestions() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <CardTitle className="text-lg">{question.title}</CardTitle>
-                <Badge variant={question.status === "published" ? "default" : "secondary"}>{question.status}</Badge>
+                <Badge variant={getStatusBadgeVariant(question.status)}>
+                  {question.status}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4 line-clamp-3">{question.content.replace(/<[^>]*>/g, "")}</p>
+              <p className="text-gray-600 mb-4 line-clamp-3">
+                {question.content.replace(/<[^>]*>/g, "")}
+              </p>
 
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-500">
-                  By {question.author} • {question.answerCount} answers • {question.commentCount} comments
+                  By {question.author || "Unknown"} • {question.answerCount} answers • {question.commentCount} comments
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -110,7 +139,11 @@ export function AdminQuestions() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => deleteQuestionMutation.mutate(question.id)}
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this question? This will also delete all answers and comments.")) {
+                        deleteQuestionMutation.mutate(question.id)
+                      }
+                    }}
                     disabled={deleteQuestionMutation.isPending}
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
@@ -121,6 +154,14 @@ export function AdminQuestions() {
             </CardContent>
           </Card>
         ))}
+
+        {questions?.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-gray-500">No questions to review</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,9 @@
 // next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    instrumentationHook: true,
+  },
   serverExternalPackages: ["@neondatabase/serverless"],
   eslint: {
     ignoreDuringBuilds: true,

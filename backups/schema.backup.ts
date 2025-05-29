@@ -1,20 +1,16 @@
-import { pgTable, serial, text, timestamp, integer, boolean, index, uniqueIndex } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, timestamp, integer, boolean } from "drizzle-orm/pg-core"
 import { createInsertSchema, createSelectSchema } from "drizzle-zod"
 import type { z } from "zod"
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
-  name: text("name"),
-  displayName: text("display_name"),
+  name: text("name").notNull(),
   image: text("image"),
-  photoURL: text("photo_url"), // For compatibility
-  isAdmin: boolean("is_admin").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  emailIdx: uniqueIndex("users_email_idx").on(table.email),
-}))
+  isAdmin: boolean("is_admin").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
 
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
@@ -22,21 +18,13 @@ export const questions = pgTable("questions", {
   content: text("content").notNull(),
   authorId: text("author_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  status: text("status", { enum: ["pending", "published", "rejected"] })
-    .default("pending")
-    .notNull(),
-  category: text("category", { 
-    enum: ["Faith", "Practices", "Theology", "History", "General"] 
-  }).notNull(),
-  votes: integer("votes").default(0).notNull(), // Renamed from likes for clarity
+    .references(() => users.id),
+  status: text("status").default("pending").notNull(),
+  category: text("category").notNull(),
+  likes: integer("likes").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  authorIdx: index("questions_author_idx").on(table.authorId),
-  statusIdx: index("questions_status_idx").on(table.status),
-  categoryIdx: index("questions_category_idx").on(table.category),
-}))
+})
 
 export const answers = pgTable("answers", {
   id: serial("id").primaryKey(),
@@ -46,47 +34,36 @@ export const answers = pgTable("answers", {
     .references(() => questions.id, { onDelete: "cascade" }),
   authorId: text("author_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  votes: integer("votes").default(0).notNull(),
-  isAccepted: boolean("is_accepted").default(false).notNull(),
+    .references(() => users.id),
+  likes: integer("likes").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  questionIdx: index("answers_question_idx").on(table.questionId),
-  authorIdx: index("answers_author_idx").on(table.authorId),
-}))
+})
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
   authorId: text("author_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => users.id),
   questionId: integer("question_id").references(() => questions.id, { onDelete: "cascade" }),
   answerId: integer("answer_id").references(() => answers.id, { onDelete: "cascade" }),
   parentId: integer("parent_id").references(() => comments.id, { onDelete: "cascade" }),
+  likes: integer("likes").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (table) => ({
-  authorIdx: index("comments_author_idx").on(table.authorId),
-  questionIdx: index("comments_question_idx").on(table.questionId),
-  answerIdx: index("comments_answer_idx").on(table.answerId),
-  parentIdx: index("comments_parent_idx").on(table.parentId),
-}))
+})
 
 export const likes = pgTable("likes", {
   id: serial("id").primaryKey(),
   userId: text("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  targetType: text("target_type", { enum: ["question", "answer", "comment"] }).notNull(),
-  targetId: integer("target_id").notNull(),
+    .references(() => users.id),
+  questionId: integer("question_id").references(() => questions.id, { onDelete: "cascade" }),
+  answerId: integer("answer_id").references(() => answers.id, { onDelete: "cascade" }),
+  commentId: integer("comment_id").references(() => comments.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  userIdx: index("likes_user_idx").on(table.userId),
-  targetIdx: index("likes_target_idx").on(table.targetType, table.targetId),
-  uniqueLike: uniqueIndex("likes_unique_idx").on(table.userId, table.targetType, table.targetId),
-}))
+})
 
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users)
@@ -97,12 +74,8 @@ export const insertAnswerSchema = createInsertSchema(answers)
 export const selectAnswerSchema = createSelectSchema(answers)
 export const insertCommentSchema = createInsertSchema(comments)
 export const selectCommentSchema = createSelectSchema(comments)
-export const insertLikeSchema = createInsertSchema(likes)
-export const selectLikeSchema = createSelectSchema(likes)
 
-// Types
 export type User = z.infer<typeof selectUserSchema>
 export type Question = z.infer<typeof selectQuestionSchema>
 export type Answer = z.infer<typeof selectAnswerSchema>
 export type Comment = z.infer<typeof selectCommentSchema>
-export type Like = z.infer<typeof selectLikeSchema>
