@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { requireDatabase } from "@/lib/db"
 import { questions, likes } from "@/lib/schema"
-import { eq, and } from "drizzle-orm"
+import { eq, and, sql } from "drizzle-orm"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -19,6 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Invalid question ID" }, { status: 400 })
     }
 
+    const db = requireDatabase()
     // Check if already liked
     const existingLike = await db
       .select()
@@ -37,10 +38,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       targetId: questionId,
     })
 
-    // Update question votes count
+    // Update question votes count using SQL
     await db
       .update(questions)
-      .set({ votes: questions.votes + 1 })
+      .set({ votes: sql`${questions.votes} + 1` })
       .where(eq(questions.id, questionId))
 
     return NextResponse.json({ success: true })
@@ -64,6 +65,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Invalid question ID" }, { status: 400 })
     }
 
+    const db = requireDatabase()
     // Remove like
     const deletedLikes = await db
       .delete(likes)
@@ -74,10 +76,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Like not found" }, { status: 404 })
     }
 
-    // Update question votes count
+    // Update question votes count using SQL
     await db
       .update(questions)
-      .set({ votes: questions.votes - 1 })
+      .set({ votes: sql`${questions.votes} - 1` })
       .where(eq(questions.id, questionId))
 
     return NextResponse.json({ success: true })

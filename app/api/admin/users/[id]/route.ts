@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { requireDatabase } from "@/lib/db"
 import { users } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 
@@ -20,6 +20,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Invalid admin status" }, { status: 400 })
     }
 
+    const db = requireDatabase()
     const [updatedUser] = await db
       .update(users)
       .set({

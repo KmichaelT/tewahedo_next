@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { requireDatabase } from "@/lib/db"
 import { questions, answers, comments, users } from "@/lib/schema"
 import { desc, sql, eq } from "drizzle-orm"
 
@@ -12,6 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const db = requireDatabase()
     const allQuestions = await db
       .select({
         id: questions.id,
@@ -19,7 +20,7 @@ export async function GET() {
         content: questions.content,
         authorId: questions.authorId,
         status: questions.status,
-        likes: questions.likes,
+        votes: questions.votes,
         createdAt: questions.createdAt,
         updatedAt: questions.updatedAt,
         author: users.displayName,

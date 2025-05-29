@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { requireDatabase } from "@/lib/db"
 import { answers } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 
@@ -17,6 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid question ID" }, { status: 400 })
     }
 
+    const db = requireDatabase()
     const answersList = await db
       .select()
       .from(answers)

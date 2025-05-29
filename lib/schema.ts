@@ -1,6 +1,5 @@
 import { pgTable, serial, text, timestamp, integer, boolean, index, uniqueIndex } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
-import { createInsertSchema, createSelectSchema } from "drizzle-zod"
 import { z } from "zod"
 
 // Tables
@@ -146,21 +145,101 @@ export const likesRelations = relations(likes, ({ one }) => ({
   }),
 }))
 
-// Zod schemas - create them properly
-export const insertUserSchema = createInsertSchema(users)
-export const selectUserSchema = createSelectSchema(users)
-export const insertQuestionSchema = createInsertSchema(questions)
-export const selectQuestionSchema = createSelectSchema(questions)
-export const insertAnswerSchema = createInsertSchema(answers)
-export const selectAnswerSchema = createSelectSchema(answers)
-export const insertCommentSchema = createInsertSchema(comments)
-export const selectCommentSchema = createSelectSchema(comments)
-export const insertLikeSchema = createInsertSchema(likes)
-export const selectLikeSchema = createSelectSchema(likes)
+// Zod schemas - create them manually to avoid compatibility issues
+export const insertUserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string().optional(),
+  displayName: z.string().optional(),
+  image: z.string().optional(),
+  photoURL: z.string().optional(),
+  isAdmin: z.boolean().default(false),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+export const insertQuestionSchema = z.object({
+  id: z.number().optional(),
+  title: z.string().min(1),
+  content: z.string().min(1),
+  authorId: z.string(),
+  status: z.enum(["pending", "published", "rejected"]).default("pending"),
+  category: z.enum(["Faith", "Practices", "Theology", "History", "General"]),
+  votes: z.number().default(0),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+export const insertAnswerSchema = z.object({
+  id: z.number().optional(),
+  content: z.string().min(1),
+  questionId: z.number(),
+  authorId: z.string(),
+  votes: z.number().default(0),
+  isAccepted: z.boolean().default(false),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+export const insertCommentSchema = z.object({
+  id: z.number().optional(),
+  content: z.string().min(1),
+  authorId: z.string(),
+  questionId: z.number().optional(),
+  answerId: z.number().optional(),
+  parentId: z.number().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+export const insertLikeSchema = z.object({
+  id: z.number().optional(),
+  userId: z.string(),
+  targetType: z.enum(["question", "answer", "comment"]),
+  targetId: z.number(),
+  createdAt: z.date().optional(),
+})
 
 // Export types using z.infer
-export type User = z.infer<typeof selectUserSchema>
-export type Question = z.infer<typeof selectQuestionSchema>
-export type Answer = z.infer<typeof selectAnswerSchema>
-export type Comment = z.infer<typeof selectCommentSchema>
-export type Like = z.infer<typeof selectLikeSchema>
+export type User = z.infer<typeof insertUserSchema>
+export type Question = z.infer<typeof insertQuestionSchema>
+export type Answer = z.infer<typeof insertAnswerSchema>
+export type Comment = z.infer<typeof insertCommentSchema>
+export type Like = z.infer<typeof insertLikeSchema>
+
+// Additional schemas for database select operations
+export const selectUserSchema = insertUserSchema.extend({
+  id: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export const selectQuestionSchema = insertQuestionSchema.extend({
+  id: z.number(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export const selectAnswerSchema = insertAnswerSchema.extend({
+  id: z.number(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export const selectCommentSchema = insertCommentSchema.extend({
+  id: z.number(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+})
+
+export const selectLikeSchema = insertLikeSchema.extend({
+  id: z.number(),
+  createdAt: z.date(),
+})
+
+// Export select types
+export type SelectUser = z.infer<typeof selectUserSchema>
+export type SelectQuestion = z.infer<typeof selectQuestionSchema>
+export type SelectAnswer = z.infer<typeof selectAnswerSchema>
+export type SelectComment = z.infer<typeof selectCommentSchema>
+export type SelectLike = z.infer<typeof selectLikeSchema>

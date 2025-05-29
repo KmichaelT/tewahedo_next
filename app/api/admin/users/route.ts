@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { requireDatabase } from "@/lib/db"
 import { users } from "@/lib/schema"
 import { desc } from "drizzle-orm"
 
@@ -12,6 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const db = requireDatabase()
     const allUsers = await db.select().from(users).orderBy(desc(users.createdAt))
 
     return NextResponse.json(allUsers)

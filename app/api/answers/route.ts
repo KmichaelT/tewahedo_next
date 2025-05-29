@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { db, answers, eq } from '@/lib/db';
+import { requireDatabase, answers, eq } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const db = requireDatabase()
     // Get answers using Drizzle's query syntax
     const allAnswers = await db.select().from(answers);
     
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { questionId, content } = body;
 
+    const db = requireDatabase()
     // Insert new answer
     const [newAnswer] = await db.insert(answers).values({
       questionId,

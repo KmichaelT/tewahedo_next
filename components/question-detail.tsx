@@ -244,11 +244,11 @@ export function QuestionDetail({ questionId }: QuestionDetailProps) {
     // Convert the current user's ID to a numeric ID
     const numericUserId = convertFirebaseUidToNumericId(session.user.id)
 
-    // Compare with the comment's userId
-    const isCommenter = comment.userId === numericUserId
+    // Compare with the comment's authorId
+    const isCommenter = comment.authorId === session.user.id
 
-    // Check if comment is less than 1 hour old
-    const commentAge = Date.now() - new Date(comment.date).getTime()
+    // Check if comment is less than 1 hour old  
+    const commentAge = Date.now() - new Date(comment.createdAt!).getTime()
     const ONE_HOUR_MS = 60 * 60 * 1000
     const isWithinTimeWindow = commentAge < ONE_HOUR_MS
 
@@ -281,7 +281,7 @@ export function QuestionDetail({ questionId }: QuestionDetailProps) {
     )
   }
 
-  const createdDate = new Date(question.date)
+  const createdDate = new Date(question.createdAt!)
   const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true })
 
   return (
@@ -314,10 +314,10 @@ export function QuestionDetail({ questionId }: QuestionDetailProps) {
               </div>
             </div>
 
-            {question.author && (
+            {question.authorId && (
               <div className="flex items-center space-x-1">
                 <User className="h-4 w-4" />
-                <span>Asked by {question.author}</span>
+                <span>Asked by {question.authorId}</span>
               </div>
             )}
           </div>
