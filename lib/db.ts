@@ -2,66 +2,53 @@ import { neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-http"
 import * as schema from "./schema"
 
-// Don't validate at module load time - wait until first use
-let db: ReturnType<typeof drizzle> | null = null
-let connectionAttempted = false
+// Create a singleton database instance
+let dbInstance: ReturnType<typeof drizzle> | null = null
 
-// Create database connection lazily
+// Get or create database connection
 function getDb() {
-  if (!connectionAttempted) {
-    connectionAttempted = true
-    
+  if (!dbInstance) {
     const databaseUrl = process.env.DATABASE_URL
     
     if (!databaseUrl || databaseUrl.trim() === "") {
       console.error("DATABASE_URL is not defined or is empty")
-      
-      // Log all env vars for debugging (without values)
-      console.log("Available environment variables:", Object.keys(process.env).filter(key => 
-        key.includes("DATABASE") || 
-        key.includes("NEXTAUTH") || 
-        key.includes("GOOGLE")
-      ))
-      
       return null
     }
     
     try {
-      console.log("Attempting database connection...")
       const sql = neon(databaseUrl, {
         fetchOptions: {
           cache: "no-store",
         },
       })
       
-      db = drizzle(sql, { schema })
+      dbInstance = drizzle(sql, { schema })
       console.log("Database connection created successfully")
     } catch (error) {
       console.error("Failed to create database connection:", error)
-      db = null
+      return null
     }
   }
   
-  return db
+  return dbInstance
 }
 
-// Export a getter instead of the db directly
-export { getDb as db }
+// Export the database instance directly (not as a function)
+export const db = getDb()
+
+// Export all the Drizzle query helpers you'll need
+export { eq, and, or, desc, asc, sql, ilike } from "drizzle-orm"
+
+// Export all schema tables for easy access
+export const { users, questions, answers, comments, likes } = schema
 
 // Helper to check if database is available
 export function isDatabaseAvailable(): boolean {
-  return getDb() !== null
+  return db !== null
 }
 
 // Test database connection
 export async function testDbConnection(): Promise<boolean> {
-  const database = getDb()
-  
-  if (!database) {
-    console.error("No database instance available")
-    return false
-  }
-  
   const databaseUrl = process.env.DATABASE_URL
   if (!databaseUrl) {
     console.error("DATABASE_URL not available for testing")
@@ -82,11 +69,10 @@ export async function testDbConnection(): Promise<boolean> {
 
 // Helper for API routes to ensure database is available
 export function requireDatabase() {
-  const database = getDb()
-  if (!database) {
+  if (!db) {
     throw new Error("Database connection not available")
   }
-  return database
+  return db
 }
 
 // Validate all required environment variables

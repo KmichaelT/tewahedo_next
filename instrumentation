@@ -1,0 +1,15 @@
+// instrumentation.js
+export async function register() {
+  // Skip instrumentation in edge runtime or client-side
+  if (typeof window !== 'undefined' || !process.env.NODE_ENV) {
+    return
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      console.log('✅ Environment variables loaded')
+    } catch (error) {
+      console.error('Error in instrumentation:', error)
+    }
+  }
+}

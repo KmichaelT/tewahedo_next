@@ -1,8 +1,6 @@
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import { db } from "./db"
-import { users } from "./schema"
-import { eq } from "drizzle-orm"
+import { db, users, eq } from "./db"
 
 const ADMIN_EMAILS = ["kmichaeltb@gmail.com"]
 const BLOCKED_ADMIN_EMAILS = ["kmichaeltbekele@gmail.com"]
@@ -21,18 +19,15 @@ export const authOptions: NextAuthOptions = {
         return false
       }
       
-      // Get database instance
-      const database = db()
-      
       // Skip database operations if no connection
-      if (!database) {
+      if (!db) {
         console.warn("Database not available, allowing sign-in without persistence")
         return true
       }
       
       try {
         // Check if user exists
-        const existingUser = await database
+        const existingUser = await db
           .select()
           .from(users)
           .where(eq(users.email, user.email))
@@ -45,7 +40,7 @@ export const authOptions: NextAuthOptions = {
           
           console.log(`Creating new user: ${user.email}, admin: ${isAdmin}`)
           
-          await database.insert(users).values({
+          await db.insert(users).values({
             id: user.id,
             email: user.email,
             name: user.name || null,
@@ -58,7 +53,7 @@ export const authOptions: NextAuthOptions = {
           // Update existing user info
           console.log(`Updating existing user: ${user.email}`)
           
-          await database
+          await db
             .update(users)
             .set({
               name: user.name || existingUser[0].name,
@@ -86,10 +81,9 @@ export const authOptions: NextAuthOptions = {
         }
         
         // Try to fetch from database for accurate info
-        const database = db()
-        if (database) {
+        if (db) {
           try {
-            const dbUser = await database
+            const dbUser = await db
               .select()
               .from(users)
               .where(eq(users.email, user.email))

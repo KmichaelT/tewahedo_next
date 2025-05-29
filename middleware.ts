@@ -25,6 +25,28 @@ function rateLimit(identifier: string, limit: number = 10, window: number = 6000
   return true
 }
 
+// Helper to get client IP
+function getClientIp(request: NextRequest): string {
+  // Try to get IP from various headers
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim()
+  }
+  
+  const realIp = request.headers.get('x-real-ip')
+  if (realIp) {
+    return realIp
+  }
+  
+  // Vercel-specific headers
+  const vercelForwardedFor = request.headers.get('x-vercel-forwarded-for')
+  if (vercelForwardedFor) {
+    return vercelForwardedFor.split(',')[0].trim()
+  }
+  
+  return 'anonymous'
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
@@ -46,7 +68,8 @@ export async function middleware(request: NextRequest) {
 
     // Apply rate limiting to API routes
     if (pathname.startsWith("/api/") && !pathname.startsWith("/api/auth")) {
-      const identifier = token?.email || request.ip || "anonymous"
+      const clientIp = getClientIp(request)
+      const identifier = token?.email || clientIp
       const limit = pathname.startsWith("/api/admin") ? 30 : 60 // Higher limit for admin
       
       if (!rateLimit(identifier, limit)) {
@@ -102,6 +125,9 @@ export async function middleware(request: NextRequest) {
     response.headers.set("X-Frame-Options", "DENY")
     response.headers.set("X-XSS-Protection", "1; mode=block")
     response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+    
+    // Add client IP to headers for downstream use
+    response.headers.set("x-client-ip", getClientIp(request))
     
     return response
   } catch (error) {

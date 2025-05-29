@@ -1,14 +1,16 @@
 import { pgTable, serial, text, timestamp, integer, boolean, index, uniqueIndex } from "drizzle-orm/pg-core"
+import { relations } from "drizzle-orm"
 import { createInsertSchema, createSelectSchema } from "drizzle-zod"
-import type { z } from "zod"
+import { z } from "zod"
 
+// Tables
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name"),
   displayName: text("display_name"),
   image: text("image"),
-  photoURL: text("photo_url"), // For compatibility
+  photoURL: text("photo_url"),
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -29,7 +31,7 @@ export const questions = pgTable("questions", {
   category: text("category", { 
     enum: ["Faith", "Practices", "Theology", "History", "General"] 
   }).notNull(),
-  votes: integer("votes").default(0).notNull(), // Renamed from likes for clarity
+  votes: integer("votes").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -64,7 +66,7 @@ export const comments = pgTable("comments", {
     .references(() => users.id, { onDelete: "cascade" }),
   questionId: integer("question_id").references(() => questions.id, { onDelete: "cascade" }),
   answerId: integer("answer_id").references(() => answers.id, { onDelete: "cascade" }),
-  parentId: integer("parent_id").references(() => comments.id, { onDelete: "cascade" }),
+  parentId: integer("parent_id"), // Remove self-reference to avoid circular dependency
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -88,7 +90,63 @@ export const likes = pgTable("likes", {
   uniqueLike: uniqueIndex("likes_unique_idx").on(table.userId, table.targetType, table.targetId),
 }))
 
-// Zod schemas
+// Relations (defined separately to avoid circular dependencies)
+export const usersRelations = relations(users, ({ many }) => ({
+  questions: many(questions),
+  answers: many(answers),
+  comments: many(comments),
+  likes: many(likes),
+}))
+
+export const questionsRelations = relations(questions, ({ one, many }) => ({
+  author: one(users, {
+    fields: [questions.authorId],
+    references: [users.id],
+  }),
+  answers: many(answers),
+  comments: many(comments),
+}))
+
+export const answersRelations = relations(answers, ({ one, many }) => ({
+  author: one(users, {
+    fields: [answers.authorId],
+    references: [users.id],
+  }),
+  question: one(questions, {
+    fields: [answers.questionId],
+    references: [questions.id],
+  }),
+  comments: many(comments),
+}))
+
+export const commentsRelations = relations(comments, ({ one, many }) => ({
+  author: one(users, {
+    fields: [comments.authorId],
+    references: [users.id],
+  }),
+  question: one(questions, {
+    fields: [comments.questionId],
+    references: [questions.id],
+  }),
+  answer: one(answers, {
+    fields: [comments.answerId],
+    references: [answers.id],
+  }),
+  parent: one(comments, {
+    fields: [comments.parentId],
+    references: [comments.id],
+  }),
+  replies: many(comments),
+}))
+
+export const likesRelations = relations(likes, ({ one }) => ({
+  user: one(users, {
+    fields: [likes.userId],
+    references: [users.id],
+  }),
+}))
+
+// Zod schemas - create them properly
 export const insertUserSchema = createInsertSchema(users)
 export const selectUserSchema = createSelectSchema(users)
 export const insertQuestionSchema = createInsertSchema(questions)
@@ -100,7 +158,7 @@ export const selectCommentSchema = createSelectSchema(comments)
 export const insertLikeSchema = createInsertSchema(likes)
 export const selectLikeSchema = createSelectSchema(likes)
 
-// Types
+// Export types using z.infer
 export type User = z.infer<typeof selectUserSchema>
 export type Question = z.infer<typeof selectQuestionSchema>
 export type Answer = z.infer<typeof selectAnswerSchema>

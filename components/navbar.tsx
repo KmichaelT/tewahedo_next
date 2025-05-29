@@ -57,9 +57,11 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                Tewahedo Answers
-              </span>
+              <img 
+                src="/ta_logo.svg" 
+                alt="Tewahedo Answers" 
+                className="h-8 w-auto" 
+              />
             </Link>
           </div>
 
