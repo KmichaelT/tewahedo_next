@@ -1,3 +1,4 @@
+// lib/auth.ts
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import { db, users, eq } from "./db"
@@ -26,6 +27,8 @@ export const authOptions: NextAuthOptions = {
       }
       
       try {
+        console.log(`🔍 Checking user: ${user.email}`)
+        
         // Check if user exists
         const existingUser = await db
           .select()
@@ -38,36 +41,55 @@ export const authOptions: NextAuthOptions = {
           const isAdmin = ADMIN_EMAILS.includes(user.email) && 
                          !BLOCKED_ADMIN_EMAILS.includes(user.email)
           
-          console.log(`Creating new user: ${user.email}, admin: ${isAdmin}`)
+          console.log(`📝 Creating new user: ${user.email}, admin: ${isAdmin}`)
           
-          await db.insert(users).values({
-            id: user.id,
+          const newUser = {
+            id: user.id || `google_${Date.now()}`,
             email: user.email,
             name: user.name || null,
             displayName: user.name || user.email.split('@')[0],
             image: user.image || null,
             photoURL: user.image || null,
             isAdmin,
-          })
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+          
+          await db.insert(users).values(newUser)
+          console.log(`✅ Created user: ${user.email}`)
+          
         } else {
           // Update existing user info
-          console.log(`Updating existing user: ${user.email}`)
+          console.log(`📝 Updating existing user: ${user.email}`)
+          
+          const updateData = {
+            name: user.name || existingUser[0].name,
+            displayName: user.name || existingUser[0].displayName || user.email.split('@')[0],
+            image: user.image || existingUser[0].image,
+            photoURL: user.image || existingUser[0].photoURL,
+            updatedAt: new Date(),
+          }
           
           await db
             .update(users)
-            .set({
-              name: user.name || existingUser[0].name,
-              displayName: user.name || existingUser[0].displayName || existingUser[0].email.split('@')[0],
-              image: user.image || existingUser[0].image,
-              photoURL: user.image || existingUser[0].photoURL,
-              updatedAt: new Date(),
-            })
+            .set(updateData)
             .where(eq(users.id, existingUser[0].id))
+            
+          console.log(`✅ Updated user: ${user.email}`)
         }
         
         return true
       } catch (error) {
-        console.error("Error during sign in:", error)
+        console.error("❌ Error during sign in:", error)
+        
+        // Check if it's a database schema issue
+        if (error instanceof Error && error.message.includes('column') && error.message.includes('does not exist')) {
+          console.error("\n🚨 DATABASE SCHEMA ERROR:")
+          console.error("The database table structure doesn't match the expected schema.")
+          console.error("Please run: npm run fix:auth-db")
+          console.error("Or check your database migration.\n")
+        }
+        
         return false
       }
     },
@@ -96,6 +118,8 @@ export const authOptions: NextAuthOptions = {
             }
           } catch (error) {
             console.error("Error fetching user in JWT callback:", error)
+            // Use fallback values
+            token.id = user.id || `user_${Date.now()}`
           }
         }
       }

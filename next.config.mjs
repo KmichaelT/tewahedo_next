@@ -17,6 +17,14 @@ const nextConfig = {
     unoptimized: true,
     domains: ['lh3.googleusercontent.com'],
   },
+  
+  // Suppress hydration warnings in development for browser extension compatibility
+  reactStrictMode: true,
+  
+  // Add experimental flag to handle hydration better
+  experimental: {
+    suppressHydrationWarning: true,
+  },
 }
 
 export default nextConfig

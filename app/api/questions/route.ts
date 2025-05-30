@@ -1,7 +1,8 @@
+// app/api/questions/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { requireDatabase } from "@/lib/db"
 import { questions, answers, comments, users } from "@/lib/schema"
 import { desc, eq, sql, and, or, ilike } from "drizzle-orm"
 import { z } from "zod"
@@ -15,13 +16,7 @@ const createQuestionSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const database = db
-    if (!database) {
-      return NextResponse.json(
-        { error: "Database unavailable" },
-        { status: 503 }
-      )
-    }
+    const database = requireDatabase()
 
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")
@@ -51,10 +46,11 @@ export async function GET(request: NextRequest) {
         authorId: questions.authorId,
         status: questions.status,
         category: questions.category,
-        votes: questions.votes, // Changed from likes
+        votes: questions.votes,
         createdAt: questions.createdAt,
         updatedAt: questions.updatedAt,
         author: users.name,
+        authorDisplayName: users.displayName,
         authorImage: users.image,
         answerCount: sql<number>`cast(count(distinct ${answers.id}) as int)`,
         commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`,
@@ -64,7 +60,7 @@ export async function GET(request: NextRequest) {
       .leftJoin(answers, eq(questions.id, answers.questionId))
       .leftJoin(comments, eq(questions.id, comments.questionId))
       .where(and(...whereConditions))
-      .groupBy(questions.id, users.name, users.image)
+      .groupBy(questions.id, users.name, users.displayName, users.image)
       .orderBy(desc(questions.createdAt))
 
     return NextResponse.json(questionsWithCounts)
@@ -87,13 +83,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const database = db
-    if (!database) {
-      return NextResponse.json(
-        { error: "Database unavailable" },
-        { status: 503 }
-      )
-    }
+    const database = requireDatabase()
 
     const body = await request.json()
     const validationResult = createQuestionSchema.safeParse(body)

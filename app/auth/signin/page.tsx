@@ -43,7 +43,9 @@ export default function SignIn() {
         console.error("❌ Sign in error:", result.error)
       } else if (result?.url) {
         console.log("✅ Sign in successful, redirecting to:", result.url)
-        window.location.href = result.url
+        if (typeof window !== 'undefined') {
+          window.location.href = result.url
+        }
       }
     } catch (error) {
       console.error("❌ Sign in exception:", error)

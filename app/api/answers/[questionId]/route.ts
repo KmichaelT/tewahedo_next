@@ -1,8 +1,9 @@
+// app/api/answers/[questionId]/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireDatabase } from "@/lib/db"
-import { answers } from "@/lib/schema"
+import { answers, users } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 
 export async function GET(
@@ -19,8 +20,23 @@ export async function GET(
 
     const db = requireDatabase()
     const answersList = await db
-      .select()
+      .select({
+        id: answers.id,
+        content: answers.content,
+        questionId: answers.questionId,
+        authorId: answers.authorId,
+        votes: answers.votes,
+        isAccepted: answers.isAccepted,
+        createdAt: answers.createdAt,
+        updatedAt: answers.updatedAt,
+        // Author information from users table
+        authorName: users.name,
+        authorDisplayName: users.displayName,
+        authorImage: users.image,
+        authorIsAdmin: users.isAdmin,
+      })
       .from(answers)
+      .leftJoin(users, eq(answers.authorId, users.id))
       .where(eq(answers.questionId, questionIdNum))
       .orderBy(answers.createdAt)
 
