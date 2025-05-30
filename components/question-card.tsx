@@ -1,116 +1,93 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { ArrowRight } from "lucide-react"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Heart, MessageCircle, Calendar, User } from "lucide-react"
-import Link from "next/link"
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface Question {
   id: number
   title: string
   content: string
-  author: {
-    name: string
-    email: string
-    image?: string
-  }
   category: string
-  likes: number
-  answers: number
+  author: string
+  authorDisplayName?: string
+  authorImage?: string
+  answerCount: number
+  votes: number
   createdAt: string
-  status: string
 }
 
 interface QuestionCardProps {
   question: Question
 }
 
+const getCategoryColor = (category: string) => {
+  const colors = {
+    'Faith': 'bg-blue-100 text-blue-800 border-blue-200',
+    'Practices': 'bg-green-100 text-green-800 border-green-200', 
+    'Theology': 'bg-purple-100 text-purple-800 border-purple-200',
+    'History': 'bg-orange-100 text-orange-800 border-orange-200',
+    'General': 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+  return colors[category as keyof typeof colors] || colors.General
+}
+
+const truncateText = (text: string, maxLength: number = 150) => {
+  const strippedText = text.replace(/<[^>]*>/g, "") // Remove HTML tags
+  if (strippedText.length <= maxLength) return strippedText
+  return strippedText.substring(0, maxLength) + "..."
+}
+
 export function QuestionCard({ question }: QuestionCardProps) {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "bg-green-100 text-green-800"
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "rejected":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Faith":
-        return "bg-blue-100 text-blue-800"
-      case "Practices":
-        return "bg-purple-100 text-purple-800"
-      case "Theology":
-        return "bg-orange-100 text-orange-800"
-      case "History":
-        return "bg-green-100 text-green-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <Link href={`/questions/${question.id}`} className="block">
-              <h3 className="text-lg font-semibold text-gray-900 hover:text-orange-600 transition-colors line-clamp-2">
-                {question.title}
-              </h3>
-            </Link>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="secondary" className={getCategoryColor(question.category)}>
-                {question.category}
-              </Badge>
-              <Badge variant="outline" className={getStatusColor(question.status)}>
-                {question.status}
-              </Badge>
-            </div>
-          </div>
-        </div>
+    <Card className="flex w-full flex-col justify-between gap-10 rounded-[.5rem] border bg-background p-5 hover:shadow-lg transition-shadow duration-300">
+      <CardHeader className="flex w-full flex-col justify-between gap-4 p-0 lg:flex-row lg:items-start">
+        <CardTitle className="flex w-fit items-start justify-start gap-2.5">
+          <h2 className="text-xl leading-tight font-bold tracking-tight line-clamp-2">
+            {question.title}
+          </h2>
+        </CardTitle>
+        <Badge className={getCategoryColor(question.category)}>
+          <p className="text-sm">{question.category}</p>
+        </Badge>
       </CardHeader>
-
-      <CardContent className="pt-0">
-        <p className="text-gray-600 text-sm line-clamp-3 mb-4">{question.content}</p>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <div className="flex items-center space-x-1">
-              <User className="h-4 w-4" />
-              <span>{question.author.name}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Calendar className="h-4 w-4" />
-              <span>{formatDate(question.createdAt)}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-red-600">
-              <Heart className="h-4 w-4 mr-1" />
-              <span>{question.likes}</span>
-            </Button>
-            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-blue-600">
-              <MessageCircle className="h-4 w-4 mr-1" />
-              <span>{question.answers}</span>
-            </Button>
-          </div>
-        </div>
+      
+      <CardContent className="p-0">
+        <p className="max-w-full text-base leading-[1.4] font-medium text-muted-foreground">
+          {truncateText(question.content)}
+        </p>
       </CardContent>
+      
+      <CardFooter className="flex w-full items-end justify-between gap-5 p-0 lg:flex-row">
+        <div className="flex-1">
+          <Link href={`/questions/${question.id}`}>
+            <Button size="sm" className="rounded-full bg-orange-600 hover:bg-orange-700">
+              <span className="flex items-center gap-2">
+                {question.answerCount > 0 ? "See Answer" : "Be First to Answer"}
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            </Button>
+          </Link>
+        </div>
+        <div className="h-8 w-8">
+          <Avatar className="h-8 w-8">
+            <AvatarImage 
+              src={question.authorImage} 
+              alt={question.authorDisplayName || question.author || "User"} 
+            />
+            <AvatarFallback className="bg-gradient-to-br from-orange-400 to-red-400 text-white text-sm font-medium">
+              {(question.authorDisplayName || question.author || "U").charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      </CardFooter>
     </Card>
   )
 }

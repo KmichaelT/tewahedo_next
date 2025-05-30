@@ -78,11 +78,11 @@ export function Navbar() {
                 Ask Question
               </Link>
             )}
-            {session?.user?.isAdmin && (
+            {/* {session?.user?.isAdmin && (
               <Link href="/admin" className="text-gray-700 hover:text-orange-600 px-3 py-2 text-sm font-medium">
                 Admin
               </Link>
-            )}
+            )} */}
 
             {/* Auth Section */}
             {authError ? (

@@ -20,7 +20,7 @@ export function QuestionsList() {
   if (isLoading) return <div>Loading questions...</div>
 
   return (
-    <div className="space-y-4">
+    <div className="container space-y-4">
       <h2 className="text-2xl font-bold">Recent Questions</h2>
       
       {questions?.map((question: any) => (
