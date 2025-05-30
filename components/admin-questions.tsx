@@ -15,6 +15,7 @@ import { RichTextEditor } from "./rich-text-editor"
 import { RichTextDisplay } from "./rich-text-display"
 import { CheckCircle, Trash2, Edit, MessageSquare, ChevronDown, ChevronRight, User, Calendar, MessageCircleIcon } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { cn } from "@/lib/utils"
 
 interface Question {
   id: number

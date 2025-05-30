@@ -4,7 +4,74 @@ import GoogleProvider from "next-auth/providers/google"
 import { db, users, eq } from "./db"
 
 const ADMIN_EMAILS = ["kmichaeltb@gmail.com"]
-const BLOCKED_ADMIN_EMAILS = ["kmichaeltbekele@gmail.com"]
+const BLOCKED_ADMIN_EMAILS = ["kmichaelbekele@gmail.com"]
+
+// Helper function to ensure user exists in database
+export async function ensureUserExists(userData: {
+  id: string
+  email: string
+  name?: string | null
+  image?: string | null
+}): Promise<{ 
+  id: string
+  email: string
+  name?: string | null
+  image?: string | null
+  isAdmin: boolean
+}> {
+  if (!db) return { ...userData, isAdmin: false }
+
+  try {
+    // Check if user exists
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userData.id))
+      .limit(1)
+
+    if (existingUser.length === 0) {
+      // Create new user
+      const isAdmin = ADMIN_EMAILS.includes(userData.email) && 
+                     !BLOCKED_ADMIN_EMAILS.includes(userData.email)
+      
+      console.log(`Creating user in database: ${userData.email}`)
+      
+      const newUser = {
+        id: userData.id,
+        email: userData.email,
+        name: userData.name || null,
+        displayName: userData.name || userData.email.split('@')[0],
+        image: userData.image || null,
+        photoURL: userData.image || null,
+        isAdmin,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      
+      await db.insert(users).values(newUser)
+      console.log(`✅ Created user in database: ${userData.email}`)
+      
+      return { ...userData, isAdmin }
+    } else {
+      // Update existing user info
+      await db
+        .update(users)
+        .set({
+          name: userData.name || existingUser[0].name,
+          displayName: userData.name || existingUser[0].displayName,
+          image: userData.image || existingUser[0].image,
+          photoURL: userData.image || existingUser[0].photoURL,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userData.id))
+        
+      return { ...userData, isAdmin: existingUser[0].isAdmin || false }
+    }
+  } catch (error) {
+    console.error("Error ensuring user exists:", error)
+    return { ...userData, isAdmin: false }
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,76 +87,20 @@ export const authOptions: NextAuthOptions = {
         return false
       }
       
-      // Skip database operations if no connection
-      if (!db) {
-        console.warn("Database not available, allowing sign-in without persistence")
-        return true
-      }
-      
       try {
-        console.log(`🔍 Checking user: ${user.email}`)
+        console.log(`🔍 Sign in attempt: ${user.email}`)
         
-        // Check if user exists
-        const existingUser = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, user.email))
-          .limit(1)
-
-        if (existingUser.length === 0) {
-          // Create new user
-          const isAdmin = ADMIN_EMAILS.includes(user.email) && 
-                         !BLOCKED_ADMIN_EMAILS.includes(user.email)
-          
-          console.log(`📝 Creating new user: ${user.email}, admin: ${isAdmin}`)
-          
-          const newUser = {
-            id: user.id || `google_${Date.now()}`,
-            email: user.email,
-            name: user.name || null,
-            displayName: user.name || user.email.split('@')[0],
-            image: user.image || null,
-            photoURL: user.image || null,
-            isAdmin,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }
-          
-          await db.insert(users).values(newUser)
-          console.log(`✅ Created user: ${user.email}`)
-          
-        } else {
-          // Update existing user info
-          console.log(`📝 Updating existing user: ${user.email}`)
-          
-          const updateData = {
-            name: user.name || existingUser[0].name,
-            displayName: user.name || existingUser[0].displayName || user.email.split('@')[0],
-            image: user.image || existingUser[0].image,
-            photoURL: user.image || existingUser[0].photoURL,
-            updatedAt: new Date(),
-          }
-          
-          await db
-            .update(users)
-            .set(updateData)
-            .where(eq(users.id, existingUser[0].id))
-            
-          console.log(`✅ Updated user: ${user.email}`)
-        }
+        // Ensure user exists in database
+        await ensureUserExists({
+          id: user.id || `google_${Date.now()}`,
+          email: user.email,
+          name: user.name,
+          image: user.image
+        })
         
         return true
       } catch (error) {
         console.error("❌ Error during sign in:", error)
-        
-        // Check if it's a database schema issue
-        if (error instanceof Error && error.message.includes('column') && error.message.includes('does not exist')) {
-          console.error("\n🚨 DATABASE SCHEMA ERROR:")
-          console.error("The database table structure doesn't match the expected schema.")
-          console.error("Please run: npm run fix:auth-db")
-          console.error("Or check your database migration.\n")
-        }
-        
         return false
       }
     },
@@ -97,41 +108,37 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       // On initial sign in, user object is available
       if (user?.email) {
-        // Set admin status for known admin emails (fallback)
-        if (ADMIN_EMAILS.includes(user.email) && !BLOCKED_ADMIN_EMAILS.includes(user.email)) {
-          token.isAdmin = true
-        }
+        // Ensure user exists and get current data
+        const userData = await ensureUserExists({
+          id: user.id || token.sub || `google_${Date.now()}`,
+          email: user.email,
+          name: user.name,
+          image: user.image
+        })
         
-        // Try to fetch from database for accurate info
-        if (db) {
-          try {
-            const dbUser = await db
-              .select()
-              .from(users)
-              .where(eq(users.email, user.email))
-              .limit(1)
-            
-            if (dbUser.length > 0) {
-              token.id = dbUser[0].id
-              token.isAdmin = dbUser[0].isAdmin
-              token.name = dbUser[0].displayName || dbUser[0].name || user.name
-            }
-          } catch (error) {
-            console.error("Error fetching user in JWT callback:", error)
-            // Use fallback values
-            token.id = user.id || `user_${Date.now()}`
-          }
-        }
+        token.id = userData.id
+        token.isAdmin = userData.isAdmin
+        token.name = userData.name
       }
       return token
     },
     
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token) {
         session.user.id = token.id as string || token.sub as string
         session.user.isAdmin = !!token.isAdmin
         if (token.name) {
           session.user.name = token.name as string
+        }
+        
+        // Double-check user exists in database
+        if (session.user.email) {
+          await ensureUserExists({
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.name,
+            image: session.user.image
+          })
         }
       }
       return session

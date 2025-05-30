@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireDatabase } from "@/lib/db"
-import { answers, likes } from "@/lib/schema"
+import { answers, likes, users } from "@/lib/schema"
 import { eq, and, sql } from "drizzle-orm"
 
 export async function GET(
@@ -77,6 +77,33 @@ export async function POST(
       )
     }
 
+    const db = requireDatabase()
+    
+    // Ensure user exists in database
+    if (session.user.email) {
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .limit(1)
+
+      if (existingUser.length === 0) {
+        console.log("Creating missing user in database")
+        await db.insert(users).values({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name || null,
+          displayName: session.user.name || session.user.email.split('@')[0],
+          image: session.user.image || null,
+          photoURL: session.user.image || null,
+          isAdmin: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        console.log("✅ Created missing user")
+      }
+    }
+
     const { id } = await params
     const answerId = Number.parseInt(id)
     console.log("Answer ID:", answerId)
@@ -89,7 +116,6 @@ export async function POST(
       )
     }
 
-    const db = requireDatabase()
     console.log("Database connection established")
 
     // Check if answer exists
