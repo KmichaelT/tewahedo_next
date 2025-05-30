@@ -28,14 +28,28 @@ export function QuestionDetail({ questionId }: { questionId: number }) {
     },
   })
 
+  const { data: comments } = useQuery({
+    queryKey: ["comments", questionId],
+    queryFn: async () => {
+      const response = await fetch(`/api/questions/${questionId}/comments`)
+      if (!response.ok) throw new Error("Failed to fetch comments")
+      return response.json()
+    },
+  })
+
   if (!question) return <div>Loading...</div>
 
   const hasOfficialAnswer = answers && answers.length > 0
+  const commentCount = comments?.length || 0
 
   return (
     <div className="space-y-8">
       {/* Question */}
-      <QuestionDisplay question={question} showFullContent={true} />
+      <QuestionDisplay 
+        question={question} 
+        showFullContent={true} 
+        commentCount={commentCount}
+      />
       
       {/* Official Answer Section - Immediately after question */}
       <div className="border-t pt-6">
@@ -73,23 +87,10 @@ export function QuestionDetail({ questionId }: { questionId: number }) {
 
       {/* Discussion Section - Only show if there's an official answer */}
       {hasOfficialAnswer && (
-        <>
-          {/* Question Comments */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">Discussion</h3>
-            <CommentSystem questionId={questionId} />
-          </div>
-          
-          {/* Answer Comments - For each answer */}
-          {answers?.map((answer: any) => (
-            <div key={`answer-comments-${answer.id}`} className="border-t pt-6">
-              <h4 className="font-medium mb-3 text-gray-700">Comments on the Official Answer</h4>
-              <div className="ml-4 pl-4 border-l-2 border-gray-200">
-                <CommentSystem questionId={questionId} answerId={answer.id} />
-              </div>
-            </div>
-          ))}
-        </>
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">Discussion</h3>
+          <CommentSystem questionId={questionId} />
+        </div>
       )}
 
       {/* Message when discussion is disabled */}

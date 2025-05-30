@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove experimental.instrumentationHook - it's no longer needed in Next.js 14+
-  // If you need instrumentation, just create instrumentation.ts in the root
-  
   serverExternalPackages: ["@neondatabase/serverless"],
   
   eslint: {
@@ -18,13 +15,8 @@ const nextConfig = {
     domains: ['lh3.googleusercontent.com'],
   },
   
-  // Suppress hydration warnings in development for browser extension compatibility
+  // Enable React strict mode
   reactStrictMode: true,
-  
-  // Add experimental flag to handle hydration better
-  experimental: {
-    suppressHydrationWarning: true,
-  },
 }
 
 export default nextConfig

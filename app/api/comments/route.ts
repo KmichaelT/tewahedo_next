@@ -1,8 +1,9 @@
+// app/api/comments/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireDatabase } from "@/lib/db"
-import { comments, users, likes } from "@/lib/schema"
+import { comments, users, likes, questions, answers } from "@/lib/schema"
 import { eq, and, sql } from "drizzle-orm"
 import { z } from "zod"
 
@@ -30,9 +31,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log("Received comment data:", body)
+
     const validationResult = createCommentSchema.safeParse(body)
 
     if (!validationResult.success) {
+      console.error("Validation failed:", validationResult.error)
       return NextResponse.json(
         { 
           error: "Invalid input", 
@@ -44,6 +48,37 @@ export async function POST(request: NextRequest) {
 
     const { content, questionId, answerId, parentId } = validationResult.data
     const db = requireDatabase()
+
+    // Validate that the question or answer exists
+    if (questionId) {
+      const [question] = await db
+        .select()
+        .from(questions)
+        .where(eq(questions.id, questionId))
+        .limit(1)
+
+      if (!question) {
+        return NextResponse.json(
+          { error: "Question not found" },
+          { status: 404 }
+        )
+      }
+    }
+
+    if (answerId) {
+      const [answer] = await db
+        .select()
+        .from(answers)
+        .where(eq(answers.id, answerId))
+        .limit(1)
+
+      if (!answer) {
+        return NextResponse.json(
+          { error: "Answer not found" },
+          { status: 404 }
+        )
+      }
+    }
 
     // Validate parent comment exists and check nesting level
     if (parentId) {
@@ -84,6 +119,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Create the comment
     const [newComment] = await db
       .insert(comments)
       .values({
@@ -95,9 +131,29 @@ export async function POST(request: NextRequest) {
       })
       .returning()
 
+    console.log("Created comment:", newComment)
+
     return NextResponse.json(newComment, { status: 201 })
   } catch (error) {
     console.error("Error creating comment:", error)
+    
+    // Provide more specific error information
+    if (error instanceof Error) {
+      if (error.message.includes('foreign key')) {
+        return NextResponse.json(
+          { error: "Invalid reference - question, answer, or user not found" },
+          { status: 400 }
+        )
+      }
+      
+      if (error.message.includes('not null')) {
+        return NextResponse.json(
+          { error: "Missing required fields" },
+          { status: 400 }
+        )
+      }
+    }
+    
     return NextResponse.json(
       { error: "Failed to create comment" },
       { status: 500 }
