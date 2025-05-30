@@ -15,10 +15,10 @@ interface Question {
   answerCount: number
   views?: number
   createdAt: string
-  author: {
-    name: string
-    image?: string
-  }
+  // API returns flat author data, not nested
+  author?: string
+  authorDisplayName?: string
+  authorImage?: string
 }
 
 interface QuestionDisplayProps {
@@ -38,6 +38,9 @@ export function QuestionDisplay({ question, showFullContent = false }: QuestionD
     return colors[category as keyof typeof colors] || colors.General
   }
 
+  // Use authorDisplayName or author as fallback
+  const authorName = question.authorDisplayName || question.author || "Anonymous"
+
   return (
     <div className="space-y-4">
       {/* Question Header */}
@@ -45,7 +48,7 @@ export function QuestionDisplay({ question, showFullContent = false }: QuestionD
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{question.title}</h1>
           <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <span>Asked by {question.author.name}</span>
+            <span>Asked by {authorName}</span>
             <span>{formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}</span>
             <Badge className={getCategoryColor(question.category)}>
               {question.category}
@@ -57,7 +60,7 @@ export function QuestionDisplay({ question, showFullContent = false }: QuestionD
       {/* Question Content */}
       <div className="bg-white p-6 rounded-lg border">
         <RichTextDisplay 
-          content={showFullContent ? question.content : question.content.substring(0, 300) + '...'}
+          content={showFullContent ? question.content : question.content.substring(0, 300) + (question.content.length > 300 ? '...' : '')}
         />
       </div>
 

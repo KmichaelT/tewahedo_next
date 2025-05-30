@@ -1,46 +1,53 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { db, questions, answers, comments, users, desc, eq, sql, and, or, ilike, isDatabaseAvailable } from "@/lib/db"
+import { requireDatabase } from "@/lib/db"
+import { questions, answers, comments, users } from "@/lib/schema"
+import { desc, eq, sql, and, or, ilike } from "drizzle-orm"
 import { z } from "zod"
 
-// Input validation schema
+// Input validation schemas
 const createQuestionSchema = z.object({
   title: z.string().min(5).max(200),
   content: z.string().min(10).max(5000),
   category: z.enum(["Faith", "Practices", "Theology", "History", "General"]),
 })
 
-export async function GET(request: NextRequest) {
+const updateQuestionSchema = z.object({
+  title: z.string().min(5).max(200).optional(),
+  content: z.string().min(10).max(5000).optional(),
+  status: z.enum(["pending", "published", "rejected"]).optional(),
+  category: z.enum(["Faith", "Practices", "Theology", "History", "General"]).optional(),
+  tags: z.string().optional(),
+})
+
+const answerQuestionSchema = z.object({
+  content: z.string().min(10).max(10000),
+  category: z.string().optional(),
+  tags: z.string().optional(),
+})
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    if (!isDatabaseAvailable()) {
-      return NextResponse.json(
-        { error: "Database unavailable" },
-        { status: 503 }
-      )
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const search = searchParams.get("search")
-    const category = searchParams.get("category")
-    const status = searchParams.get("status") || "published"
+    const { id } = await params
+    const questionId = Number.parseInt(id)
 
-    const whereConditions = [eq(questions.status, status as any)]
-
-    if (search) {
-      whereConditions.push(
-        or(
-          ilike(questions.title, `%${search}%`),
-          ilike(questions.content, `%${search}%`)
-        )!
-      )
+    if (isNaN(questionId)) {
+      return NextResponse.json({ error: "Invalid question ID" }, { status: 400 })
     }
 
-    if (category && category !== "all") {
-      whereConditions.push(eq(questions.category, category as any))
-    }
-
-    const questionsWithCounts = await db!
+    const db = requireDatabase()
+    
+    // Get question with author info and counts
+    const [question] = await db
       .select({
         id: questions.id,
         title: questions.title,
@@ -52,7 +59,7 @@ export async function GET(request: NextRequest) {
         createdAt: questions.createdAt,
         updatedAt: questions.updatedAt,
         author: users.name,
-        authorImage: users.image,
+        authorDisplayName: users.displayName,
         answerCount: sql<number>`cast(count(distinct ${answers.id}) as int)`,
         commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`,
       })
@@ -60,17 +67,112 @@ export async function GET(request: NextRequest) {
       .leftJoin(users, eq(questions.authorId, users.id))
       .leftJoin(answers, eq(questions.id, answers.questionId))
       .leftJoin(comments, eq(questions.id, comments.questionId))
-      .where(and(...whereConditions))
-      .groupBy(questions.id, users.name, users.image)
-      .orderBy(desc(questions.createdAt))
+      .where(eq(questions.id, questionId))
+      .groupBy(questions.id, users.name, users.displayName)
 
-    return NextResponse.json(questionsWithCounts)
+    if (!question) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(question)
   } catch (error) {
-    console.error("Error fetching questions:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch questions" },
-      { status: 500 }
-    )
+    console.error("Error fetching question:", error)
+    return NextResponse.json({ error: "Failed to fetch question" }, { status: 500 })
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await params
+    const questionId = Number.parseInt(id)
+
+    if (isNaN(questionId)) {
+      return NextResponse.json({ error: "Invalid question ID" }, { status: 400 })
+    }
+
+    const body = await request.json()
+    const validationResult = updateQuestionSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          error: "Invalid input", 
+          details: validationResult.error.flatten() 
+        },
+        { status: 400 }
+      )
+    }
+
+    const db = requireDatabase()
+    const updateData = {
+      ...validationResult.data,
+      updatedAt: new Date(),
+    }
+
+    const [updatedQuestion] = await db
+      .update(questions)
+      .set(updateData)
+      .where(eq(questions.id, questionId))
+      .returning()
+
+    if (!updatedQuestion) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(updatedQuestion)
+  } catch (error) {
+    console.error("Error updating question:", error)
+    return NextResponse.json({ error: "Failed to update question" }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await params
+    const questionId = Number.parseInt(id)
+
+    if (isNaN(questionId)) {
+      return NextResponse.json({ error: "Invalid question ID" }, { status: 400 })
+    }
+
+    const db = requireDatabase()
+    
+    // Check if question exists
+    const [existingQuestion] = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.id, questionId))
+      .limit(1)
+
+    if (!existingQuestion) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 })
+    }
+
+    // Delete the question (cascade will handle answers and comments)
+    await db
+      .delete(questions)
+      .where(eq(questions.id, questionId))
+
+    return NextResponse.json({ message: "Question deleted successfully" })
+  } catch (error) {
+    console.error("Error deleting question:", error)
+    return NextResponse.json({ error: "Failed to delete question" }, { status: 500 })
   }
 }
 
@@ -78,19 +180,10 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (!isDatabaseAvailable()) {
-      return NextResponse.json(
-        { error: "Database unavailable" },
-        { status: 503 }
-      )
-    }
-
+    const db = requireDatabase()
     const body = await request.json()
     const validationResult = createQuestionSchema.safeParse(body)
 
@@ -106,7 +199,7 @@ export async function POST(request: NextRequest) {
 
     const { title, content, category } = validationResult.data
 
-    const [newQuestion] = await db!
+    const [newQuestion] = await db
       .insert(questions)
       .values({
         title,
@@ -120,9 +213,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newQuestion, { status: 201 })
   } catch (error) {
     console.error("Error creating question:", error)
-    return NextResponse.json(
-      { error: "Failed to create question" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to create question" }, { status: 500 })
   }
 }

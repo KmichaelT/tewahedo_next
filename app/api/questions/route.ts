@@ -100,6 +100,34 @@ export async function POST(request: NextRequest) {
 
     const { title, content, category } = validationResult.data
 
+    // Check if user exists in database, if not create them
+    const existingUser = await database
+      .select()
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1)
+
+    if (existingUser.length === 0) {
+      // Create the user if they don't exist
+      console.log(`Creating missing user: ${session.user.email}`)
+      
+      const newUser = {
+        id: session.user.id,
+        email: session.user.email || "",
+        name: session.user.name || null,
+        displayName: session.user.name || session.user.email?.split('@')[0] || "Anonymous",
+        image: session.user.image || null,
+        photoURL: session.user.image || null,
+        isAdmin: session.user.isAdmin || false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      
+      await database.insert(users).values(newUser)
+      console.log(`✅ Created missing user: ${session.user.email}`)
+    }
+
+    // Now create the question
     const [newQuestion] = await database
       .insert(questions)
       .values({

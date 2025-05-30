@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Bold, Italic, List, ListOrdered, Quote, 
-  Link, Heading3, Table, Code, Undo, Redo,
-  Eye, EyeOff
+  Link, Heading2, Heading3, Eye, EyeOff, Type
 } from "lucide-react"
 import { RichTextDisplay } from "./rich-text-display"
 import { cn } from "@/lib/utils"
@@ -48,42 +47,56 @@ export function RichTextEditor({
     }
   }, [onChange])
 
-  const insertTable = useCallback(() => {
-    const tableHTML = `
-      <table>
-        <tr>
-          <th>Column 1</th>
-          <th>Column 2</th>
-        </tr>
-        <tr>
-          <td>Cell 1</td>
-          <td>Cell 2</td>
-        </tr>
-      </table>
-    `
-    if (typeof document !== 'undefined') {
-      document.execCommand('insertHTML', false, tableHTML)
-    }
-    handleInput()
-  }, [handleInput])
-
   const insertBlockquote = useCallback(() => {
     executeCommand('formatBlock', 'blockquote')
   }, [executeCommand])
 
+  // Restricted toolbar with only approved formatting options
   const toolbarButtons = [
-    { icon: Bold, command: 'bold', title: 'Bold (Ctrl+B)' },
-    { icon: Italic, command: 'italic', title: 'Italic (Ctrl+I)' },
-    { icon: Heading3, command: 'formatBlock', value: 'h3', title: 'Heading 3' },
-    { icon: List, command: 'insertUnorderedList', title: 'Bullet List' },
-    { icon: ListOrdered, command: 'insertOrderedList', title: 'Numbered List' },
-    { icon: Quote, action: insertBlockquote, title: 'Quote' },
-    { icon: Link, command: 'createLink', title: 'Insert Link', prompt: 'Enter URL:' },
-    { icon: Table, action: insertTable, title: 'Insert Table' },
-    { icon: Code, command: 'formatBlock', value: 'pre', title: 'Code Block' },
-    { icon: Undo, command: 'undo', title: 'Undo' },
-    { icon: Redo, command: 'redo', title: 'Redo' },
+    { icon: Bold, command: 'bold', title: 'Bold (Ctrl+B)', group: 'format' },
+    { icon: Italic, command: 'italic', title: 'Italic (Ctrl+I)', group: 'format' },
+    { icon: Heading2, command: 'formatBlock', value: 'h2', title: 'Heading 2', group: 'structure' },
+    { icon: Heading3, command: 'formatBlock', value: 'h3', title: 'Heading 3', group: 'structure' },
+    { icon: Type, command: 'formatBlock', value: 'p', title: 'Normal Text', group: 'structure' },
+    { icon: List, command: 'insertUnorderedList', title: 'Bullet List', group: 'list' },
+    { icon: ListOrdered, command: 'insertOrderedList', title: 'Numbered List', group: 'list' },
+    { icon: Quote, action: insertBlockquote, title: 'Quote Block', group: 'structure' },
+    { icon: Link, command: 'createLink', title: 'Insert Link', prompt: 'Enter URL:', group: 'link' },
   ]
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Prevent manual formatting shortcuts that aren't in our toolbar
+    const forbiddenShortcuts = [
+      'KeyU', // Underline
+      'KeyE', // Center align
+      'KeyL', // Left align  
+      'KeyR', // Right align
+      'KeyJ', // Justify
+    ]
+    
+    if ((e.ctrlKey || e.metaKey) && forbiddenShortcuts.includes(e.code)) {
+      e.preventDefault()
+    }
+    
+    // Prevent font size changes
+    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+      e.preventDefault()
+    }
+  }, [])
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault()
+    
+    // Get plain text content only
+    const text = e.clipboardData.getData('text/plain')
+    
+    // Insert as plain text
+    if (typeof document !== 'undefined') {
+      document.execCommand('insertText', false, text)
+    }
+    
+    handleInput()
+  }, [handleInput])
 
   return (
     <Card className={className}>
@@ -105,30 +118,85 @@ export function RichTextEditor({
       <CardContent className="space-y-3">
         {!showPreview ? (
           <>
-            {/* Toolbar */}
-            <div className="flex flex-wrap gap-1 p-2 border border-gray-200 rounded-t-md bg-gray-50">
-              {toolbarButtons.map((button, index) => (
-                <Button
-                  key={index}
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  title={button.title}
-                  onClick={() => {
-                    if (button.action) {
-                      button.action()
-                    } else if (button.prompt) {
-                      const value = prompt(button.prompt)
-                      if (value) executeCommand(button.command, value)
-                    } else {
-                      executeCommand(button.command, button.value)
-                    }
-                  }}
-                >
-                  <button.icon className="h-4 w-4" />
-                </Button>
-              ))}
+            {/* Toolbar - organized by groups */}
+            <div className="border border-gray-200 rounded-t-md bg-gray-50">
+              {/* Text Formatting */}
+              <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200">
+                <span className="text-xs text-gray-500 mr-2 self-center">Format:</span>
+                {toolbarButtons.filter(btn => btn.group === 'format').map((button, index) => (
+                  <Button
+                    key={index}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    title={button.title}
+                    onClick={() => {
+                      if (button.action) {
+                        button.action()
+                      } else if (button.prompt) {
+                        const value = prompt(button.prompt)
+                        if (value) executeCommand(button.command, value)
+                      } else {
+                        executeCommand(button.command, button.value)
+                      }
+                    }}
+                  >
+                    <button.icon className="h-4 w-4" />
+                  </Button>
+                ))}
+              </div>
+
+              {/* Structure */}
+              <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200">
+                <span className="text-xs text-gray-500 mr-2 self-center">Structure:</span>
+                {toolbarButtons.filter(btn => btn.group === 'structure').map((button, index) => (
+                  <Button
+                    key={index}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    title={button.title}
+                    onClick={() => {
+                      if (button.action) {
+                        button.action()
+                      } else {
+                        executeCommand(button.command, button.value)
+                      }
+                    }}
+                  >
+                    <button.icon className="h-4 w-4" />
+                  </Button>
+                ))}
+              </div>
+
+              {/* Lists and Links */}
+              <div className="flex flex-wrap gap-1 p-2">
+                <span className="text-xs text-gray-500 mr-2 self-center">Lists & Links:</span>
+                {toolbarButtons.filter(btn => ['list', 'link'].includes(btn.group)).map((button, index) => (
+                  <Button
+                    key={index}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    title={button.title}
+                    onClick={() => {
+                      if (button.action) {
+                        button.action()
+                      } else if (button.prompt) {
+                        const value = prompt(button.prompt)
+                        if (value) executeCommand(button.command, value)
+                      } else {
+                        executeCommand(button.command, button.value)
+                      }
+                    }}
+                  >
+                    <button.icon className="h-4 w-4" />
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/* Editor */}
@@ -137,16 +205,29 @@ export function RichTextEditor({
               contentEditable
               className={cn(
                 "min-h-[300px] p-4 border border-gray-200 rounded-b-md",
-                "prose prose-sm max-w-none focus:outline-none focus:ring-2 focus:ring-orange-500",
-                "prose-headings:text-gray-900 prose-p:text-gray-700",
-                "prose-strong:text-gray-900 prose-em:text-gray-800",
+                "focus:outline-none focus:ring-2 focus:ring-orange-500",
+                "prose prose-sm max-w-none",
+                // Custom typography styles that match site design
+                "prose-headings:text-gray-900 prose-headings:font-semibold",
+                "prose-h2:text-xl prose-h2:font-bold prose-h2:mt-6 prose-h2:mb-4 prose-h2:text-gray-900",
+                "prose-h3:text-lg prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-3 prose-h3:text-gray-800",
+                "prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4",
+                "prose-strong:text-gray-900 prose-strong:font-semibold",
+                "prose-em:text-gray-800 prose-em:italic",
+                "prose-ul:list-disc prose-ul:ml-6 prose-ul:mb-4",
+                "prose-ol:list-decimal prose-ol:ml-6 prose-ol:mb-4",
+                "prose-li:text-gray-700 prose-li:mb-2",
                 "prose-blockquote:border-l-4 prose-blockquote:border-orange-500",
-                "prose-blockquote:bg-orange-50 prose-blockquote:pl-4",
+                "prose-blockquote:bg-orange-50 prose-blockquote:p-4 prose-blockquote:my-4",
+                "prose-blockquote:italic prose-blockquote:text-orange-800",
+                "prose-a:text-orange-600 prose-a:underline hover:prose-a:text-orange-800",
                 "[&:empty]:before:content-[attr(data-placeholder)]",
                 "[&:empty]:before:text-gray-400"
               )}
               dangerouslySetInnerHTML={{ __html: value }}
               onInput={handleInput}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               data-placeholder={placeholder}
               suppressContentEditableWarning={true}
             />
@@ -160,12 +241,17 @@ export function RichTextEditor({
         )}
 
         {/* Helper Text */}
-        <div className="text-xs text-gray-500">
-          <strong>Formatting tips:</strong> Use the toolbar buttons above or keyboard shortcuts. 
-          Ctrl+B for bold, Ctrl+I for italic. Click Preview to see how your answer will appear.
+        <div className="text-xs text-gray-500 space-y-1">
+          <p><strong>Formatting Guidelines:</strong></p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li>Use the toolbar buttons for all formatting - manual shortcuts are disabled</li>
+            <li>Paste content will be converted to plain text automatically</li>
+            <li>Headings: Use H2 for main sections, H3 for subsections</li>
+            <li>Use quote blocks for scripture or important references</li>
+            <li>Bold and italic should be used sparingly for emphasis</li>
+          </ul>
         </div>
       </CardContent>
     </Card>
   )
 }
-
