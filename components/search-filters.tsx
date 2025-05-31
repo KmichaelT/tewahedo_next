@@ -178,7 +178,7 @@ export function SearchFilters({ onFiltersChange, className }: SearchFiltersProps
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-auto p-0 w-4 h-4 hover:bg-blue-200"
+                className="h-auto p-0 w-4   hover:bg-blue-200"
                 onClick={badge.onRemove}
               >
                 <X className="h-3 w-3" />
