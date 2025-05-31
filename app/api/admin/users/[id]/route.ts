@@ -1,21 +1,25 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireDatabase } from "@/lib/db"
 import { users } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = params.id
+    // Because `params` is a Promise, we must await it:
+    const { id: userId } = await params
+
     const body = await request.json()
     const { isAdmin } = body
-
     if (typeof isAdmin !== "boolean") {
       return NextResponse.json({ error: "Invalid admin status" }, { status: 400 })
     }
