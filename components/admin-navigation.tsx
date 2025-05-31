@@ -1,14 +1,39 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Home, MessageSquare, Users, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Home, MessageSquare, Users } from "lucide-react"
+
+const adminSections = [
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    description: "Overview of platform statistics and recent activity",
+    icon: Home,
+    href: "/admin",
+  },
+  {
+    id: "questions",
+    title: "Questions", 
+    description: "Manage questions, provide answers, and moderate content",
+    icon: MessageSquare,
+    href: "/admin/questions",
+  },
+  {
+    id: "users",
+    title: "Users",
+    description: "Manage user permissions and admin privileges", 
+    icon: Users,
+    href: "/admin/users",
+  },
+]
 
 export function AdminNavigation() {
   const pathname = usePathname()
-
+  const router = useRouter()
+  
   // Determine active tab based on current path
   const getActiveTab = () => {
     if (pathname === "/admin") return "dashboard"
@@ -17,90 +42,84 @@ export function AdminNavigation() {
     return "dashboard"
   }
 
-  const navItems = [
-    { 
-      id: "dashboard", 
-      name: "Dashboard", 
-      href: "/admin", 
-      icon: Home,
-      description: "Overview & Stats"
-    },
-    { 
-      id: "questions", 
-      name: "Questions", 
-      href: "/admin/questions", 
-      icon: MessageSquare,
-      description: "Manage Q&A"
-    },
-    { 
-      id: "users", 
-      name: "Users", 
-      href: "/admin/users", 
-      icon: Users,
-      description: "User Management"
-    },
-  ]
+  const activeTab = getActiveTab()
+  const activeSection = adminSections.find(section => section.id === activeTab)
+
+  const handleTabChange = (value: string) => {
+    const section = adminSections.find(s => s.id === value)
+    if (section) {
+      router.push(section.href)
+    }
+  }
 
   return (
-    <nav className="bg-white container shadow-sm border-b sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with title and back button */}
-        <div className="flex items-center justify-between h-16 border-b border-gray-100">
-          <div className="flex items-center space-x-4">
-        <div className="py-4">
-          <Tabs value={getActiveTab()} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex lg:h-auto lg:p-1">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <Link key={item.id} href={item.href} className="w-full lg:w-auto">
-                    <TabsTrigger 
-                      value={item.id}
-                      className="w-full lg:w-auto flex items-center justify-center lg:justify-start space-x-2 px-3 py-2 lg:px-4 lg:py-3 text-sm font-medium transition-all duration-200 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-600 data-[state=active]:border-orange-200"
-                    >
-                      <Icon className="h-4 w-4 lg:h-5 lg:w-5" />
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:space-x-2">
-                        <span className="text-xs lg:text-sm font-medium">
-                          {item.name}
-                        </span>
+    <div className=" bg-gray-50">
 
-                      </div>
-                    </TabsTrigger>
-                  </Link>
-                )
-              })}
-            </TabsList>
-          </Tabs>
-        </div>
+      {/* Tab Navigation Header */}
+      <section className="py-8">
+        <div className="flex flex-col items-center lg:px-16">
+          <div className="container flex flex-col items-center">
+            <h2 className="mb-3 text-center text-2xl font-semibold md:mb-4 md:text-3xl lg:mb-6 lg:max-w-3xl">
+              Platform Administration
+            </h2>
+            <p className="text-center text-gray-600 mb-8 max-w-2xl">
+              Manage your Tewahedo Answers community with comprehensive tools for content moderation, user management, and platform oversight.
+            </p>
+          </div>
+          
+          <div className="w-full text-center">
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <div className="relative">
+                <div className="container mb-6 hidden min-w-fit flex-col items-center md:flex lg:mb-8 lg:max-w-5xl">
+                  <TabsList className="gap-x-2">
+                    {adminSections.map((section) => {
+                      const Icon = section.icon
+                      return (
+                        <TabsTrigger key={section.id} value={section.id} className="flex items-center space-x-2">
+                          <Icon className="h-4 w-4" />
+                          <span>{section.title}</span>
+                        </TabsTrigger>
+                      )
+                    })}
+                  </TabsList>
+                </div>
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--color-background)_0%,transparent_10%,transparent_90%,var(--color-background)_100%)] md:hidden" />
+              </div>
+              
+              {/* Mobile Navigation Dots */}
+              <div className="flex justify-center py-3 md:hidden">
+                {adminSections.map((section) => (
+                  <Button
+                    key={section.id}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleTabChange(section.id)}
+                  >
+                    <div
+                      className={`size-2 rounded-full ${
+                        section.id === activeTab ? "bg-primary" : "bg-input"
+                      }`}
+                    />
+                  </Button>
+                ))}
+              </div>
+            </Tabs>
           </div>
 
-          <Link href="/">
-            <Button variant="outline" size="sm" className="flex items-center space-x-2">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to Site</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
-          </Link>
+          {/* Active Section Header */}
+          {activeSection && (
+            <div className="container w-full lg:max-w-6xl">
+              <div className="mb-6 text-center">
+                <div className="flex items-center justify-center space-x-2 mb-2">
+                  <activeSection.icon className="h-6 w-6 text-orange-600" />
+                  <h3 className="text-xl font-semibold text-gray-900">{activeSection.title}</h3>
+                </div>
+                <p className="text-gray-600 max-w-2xl mx-auto">{activeSection.description}</p>
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* Tabs Navigation */}
-
-      </div>
-
-      {/* Mobile-optimized bottom border with active indicator */}
-      <div className="block sm:hidden">
-        <div className="relative">
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-200"></div>
-          <div 
-            className="absolute bottom-0 h-0.5 bg-orange-500 transition-all duration-300 ease-in-out"
-            style={{
-              width: '33.333%',
-              left: getActiveTab() === 'dashboard' ? '0%' : 
-                    getActiveTab() === 'questions' ? '33.333%' : '66.666%'
-            }}
-          ></div>
-        </div>
-      </div>
-    </nav>
+      </section>
+    </div>
   )
 }

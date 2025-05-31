@@ -45,11 +45,7 @@ export function AdminUsers() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Manage Users</h1>
-        <p className="text-gray-600">Manage user roles and permissions</p>
-      </div>
+    <div className="space-y-6"> 
 
       <div className="grid gap-4">
         {users?.map((user: any) => (

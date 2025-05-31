@@ -110,12 +110,12 @@ export function Navbar() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
+                  {/* <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center">
                       <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                   {session.user.isAdmin && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin" className="flex items-center">
@@ -124,12 +124,12 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild>
+                  {/* <DropdownMenuItem asChild>
                     <Link href="/settings" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />
                       Settings
                     </Link>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="cursor-pointer" onSelect={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
@@ -139,7 +139,7 @@ export function Navbar() {
               </DropdownMenu>
             ) : (
               <Button onClick={handleSignIn} className="bg-orange-600 hover:bg-orange-700">
-                Sign In
+                Sign In with Google
               </Button>
             )}
           </div>
