@@ -2,21 +2,24 @@
 const nextConfig = {
   serverExternalPackages: ["@neondatabase/serverless"],
   
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  
   images: {
     unoptimized: true,
-    domains: ['lh3.googleusercontent.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
   
-  // Enable React strict mode
   reactStrictMode: true,
+  
+  // Ensure proper handling of ESM modules
+  experimental: {
+    serverComponentsExternalPackages: ["@neondatabase/serverless", "pg"],
+  },
 }
 
 export default nextConfig

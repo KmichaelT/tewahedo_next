@@ -70,7 +70,7 @@ export default function SignIn() {
               <span className="text-sm">Authentication failed: {error}</span>
             </div>
           )}
-
+{/* 
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
             <p className="text-sm text-blue-800">
               <strong>Debug Info:</strong>
@@ -81,7 +81,7 @@ export default function SignIn() {
               <br />
               Error: {error || "None"}
             </p>
-          </div>
+          </div> */}
 
           <Button
             onClick={handleSignIn}
