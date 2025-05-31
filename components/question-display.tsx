@@ -154,12 +154,12 @@ export function QuestionDisplay({ question, showFullContent = false, commentCoun
           )}
         >
           <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-          <span>{localVotes} votes</span>
+          <span>{localVotes}</span>
         </Button>
         
         <div className="flex items-center space-x-1">
           <MessageCircle className="h-4 w-4" />
-          <span>{commentCount} comments</span>
+          <span>{commentCount}</span>
         </div>
         
         {question.views && (

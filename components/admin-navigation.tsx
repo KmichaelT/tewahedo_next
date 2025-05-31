@@ -42,29 +42,11 @@ export function AdminNavigation() {
   ]
 
   return (
-    <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+    <nav className="bg-white container shadow-sm border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header with title and back button */}
         <div className="flex items-center justify-between h-16 border-b border-gray-100">
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold text-gray-900 hidden sm:block">
-              Admin Dashboard
-            </h1>
-            <h1 className="text-lg font-bold text-gray-900 sm:hidden">
-              Admin
-            </h1>
-          </div>
-
-          <Link href="/">
-            <Button variant="outline" size="sm" className="flex items-center space-x-2">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to Site</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
-          </Link>
-        </div>
-
-        {/* Tabs Navigation */}
         <div className="py-4">
           <Tabs value={getActiveTab()} className="w-full">
             <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex lg:h-auto lg:p-1">
@@ -81,9 +63,7 @@ export function AdminNavigation() {
                         <span className="text-xs lg:text-sm font-medium">
                           {item.name}
                         </span>
-                        <span className="hidden xl:block text-xs text-gray-500">
-                          {item.description}
-                        </span>
+
                       </div>
                     </TabsTrigger>
                   </Link>
@@ -92,6 +72,19 @@ export function AdminNavigation() {
             </TabsList>
           </Tabs>
         </div>
+          </div>
+
+          <Link href="/">
+            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to Site</span>
+              <span className="sm:hidden">Back</span>
+            </Button>
+          </Link>
+        </div>
+
+        {/* Tabs Navigation */}
+
       </div>
 
       {/* Mobile-optimized bottom border with active indicator */}

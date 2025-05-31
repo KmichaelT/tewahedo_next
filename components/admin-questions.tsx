@@ -8,14 +8,19 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { RichTextEditor } from "./rich-text-editor"
 import { RichTextDisplay } from "./rich-text-display"
-import { CheckCircle, Trash2, Edit, MessageSquare, ChevronDown, ChevronRight, User, Calendar, MessageCircleIcon } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import { CheckCircle, Trash2, Edit, MessageSquare, ChevronDown, ChevronRight, User, Heart, MessageCircle, MoreVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Question {
   id: number
@@ -172,17 +177,15 @@ export function AdminQuestions() {
       content: question.content,
       status: question.status,
       category: question.category,
-      tags: "" // You might want to fetch tags from the question
+      tags: ""
     })
   }
 
   const openAnswerModal = async (question: Question) => {
     setAnsweringQuestion(question)
     
-    // Check if question already has an answer
     if (question.answerCount > 0) {
       setIsEditingAnswer(true)
-      // Fetch existing answer to populate the form
       try {
         const response = await fetch(`/api/admin/questions/${question.id}/answer`)
         if (response.ok) {
@@ -197,7 +200,6 @@ export function AdminQuestions() {
         }
       } catch (error) {
         console.error("Failed to fetch existing answer:", error)
-        // Fallback to empty form
         setAnswerForm({
           content: "",
           category: question.category,
@@ -222,36 +224,62 @@ export function AdminQuestions() {
     }
   }
 
+  const getCategoryColor = (category: string) => {
+    const colors = {
+      'Faith': 'bg-blue-100 text-blue-800 border-blue-200',
+      'Practices': 'bg-green-100 text-green-800 border-green-200', 
+      'Theology': 'bg-purple-100 text-purple-800 border-purple-200',
+      'History': 'bg-orange-100 text-orange-800 border-orange-200',
+      'General': 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+    return colors[category as keyof typeof colors] || colors.General
+  }
+
   const handleUpdateStatus = (id: number, status: "pending" | "published") => {
     updateQuestionMutation.mutate({ id, data: { status } })
   }
 
   if (isLoading) {
-    return <div className="flex justify-center p-8">Loading questions...</div>
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Manage Questions</h1>
+          <p className="text-gray-600">Review, edit, answer, and moderate forum questions</p>
+        </div>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+          <span className="ml-3 text-gray-600">Loading questions...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Manage Questions</h1>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-gray-900">Manage Questions</h1>
         <p className="text-gray-600">Review, edit, answer, and moderate forum questions</p>
       </div>
 
-      <div className="space-y-4">
+      {/* Questions List */}
+      <div className="space-y-6">
         {questions?.map((question: Question) => {
           const isExpanded = expandedQuestions.has(question.id)
           
           return (
-            <Card key={question.id} className="border-l-4 border-l-blue-500">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+            <Card key={question.id} className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="pb-4">
+                {/* Question Header */}
+                <div className="space-y-4">
+                  {/* Top Row: Expand Button, Title, Category, Status and Actions */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => toggleQuestionExpansion(question.id)}
-                        className="h-auto p-1"
+                        className="flex-shrink-0 h-8 w-8 p-0"
                       >
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4" />
@@ -259,138 +287,138 @@ export function AdminQuestions() {
                           <ChevronRight className="h-4 w-4" />
                         )}
                       </Button>
-                      <CardTitle className="text-lg cursor-pointer" onClick={() => toggleQuestionExpansion(question.id)}>
-                        {question.title}
-                      </CardTitle>
-                      <Badge variant={getStatusBadgeVariant(question.status)}>
-                        {question.status}
-                      </Badge>
+                      <div className="min-w-0 flex-1 flex items-center gap-3">
+                        <CardTitle 
+                          className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-orange-600 transition-colors truncate flex-1"
+                          onClick={() => toggleQuestionExpansion(question.id)}
+                          title={question.title}
+                        >
+                          {question.title}
+                        </CardTitle>
+                        {/* Category Pill */}
+                        <Badge 
+                          variant="outline" 
+                          className={cn("flex-shrink-0 text-xs px-3 py-1 rounded-full font-medium", getCategoryColor(question.category))}
+                        >
+                          {question.category}
+                        </Badge>
+                      </div>
                     </div>
                     
-                    {/* Question Preview */}
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                      {question.content.replace(/<[^>]*>/g, "").substring(0, 150)}...
-                    </p>
-
-                    {/* Question Metadata */}
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        <span>By {question.author || "Unknown"}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>{formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageCircleIcon className="h-3 w-3" />
-                        <span>{question.answerCount} answers</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>💬 {question.commentCount} comments</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>👍 {question.votes} votes</span>
-                      </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <Badge 
+                        variant={getStatusBadgeVariant(question.status)}
+                        className={cn(
+                          "font-medium",
+                          question.status === "published" && "bg-green-100 text-green-800 border-green-200",
+                          question.status === "pending" && "bg-yellow-100 text-yellow-800 border-yellow-200"
+                        )}
+                      >
+                        {question.status}
+                      </Badge>
+                      
+                      {/* Actions Dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => openEditModal(question)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Question
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openAnswerModal(question)}>
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            {question.answerCount > 0 ? "Edit Answer" : "Add Answer"}
+                          </DropdownMenuItem>
+                          {question.status !== "published" && (
+                            <DropdownMenuItem 
+                              onClick={() => handleUpdateStatus(question.id, "published")}
+                              disabled={question.answerCount === 0}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Publish
+                              {question.answerCount === 0 && (
+                                <span className="ml-1 text-xs text-gray-500">(Needs Answer)</span>
+                              )}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => deleteQuestionMutation.mutate(question.id)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Question
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center space-x-2">
-                    {question.status !== "published" && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleUpdateStatus(question.id, "published")}
-                        disabled={updateQuestionMutation.isPending || question.answerCount === 0}
-                        className={cn(
-                          "bg-green-600 hover:bg-green-700",
-                          question.answerCount === 0 && "opacity-50 cursor-not-allowed"
-                        )}
-                        title={question.answerCount === 0 ? "Cannot publish without an official answer" : "Publish question"}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Publish
-                        {question.answerCount === 0 && (
-                          <span className="ml-1 text-xs">(Needs Answer)</span>
-                        )}
-                      </Button>
-                    )}
+                  {/* Author Row */}
+                  <div className="flex items-center gap-2 text-sm text-gray-600 ml-11">
+                    <User className="h-4 w-4" />
+                    <span>By {question.author || "Unknown"}</span>
+                  </div>
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openEditModal(question)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
+                  {/* Content Preview */}
+                  <div className="bg-gray-50 p-4 rounded-lg ml-11">
+                    <p className="text-gray-700 line-clamp-3">
+                      {question.content.replace(/<[^>]*>/g, "")}
+                    </p>
+                  </div>
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openAnswerModal(question)}
-                      className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                    >
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      {question.answerCount > 0 ? "Edit Answer" : "Answer"}
-                    </Button>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={deleteQuestionMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Question</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this question? This will also delete all answers and comments. This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteQuestionMutation.mutate(question.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                  {/* Stats Row - Always at bottom */}
+                  <div className="flex items-center gap-6 text-sm text-gray-600 ml-11 pt-2 border-t border-gray-100">
+                    <div className="flex items-center gap-1">
+                      <Heart className="h-4 w-4" />
+                      <span>{question.votes}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>{question.commentCount}</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Created {new Date(question.createdAt).toLocaleDateString()}
+                    </div>
                   </div>
                 </div>
               </CardHeader>
 
-              {/* Expanded Question Details */}
+              {/* Expanded Content */}
               {isExpanded && (
-                <CardContent className="border-t pt-4">
-                  <div className="space-y-4">
+                <CardContent className="border-t pt-6">
+                  <div className="space-y-6">
                     <div>
-                      <h4 className="font-semibold mb-2">Full Question Content:</h4>
-                      <div className="bg-gray-50 p-4 rounded-md">
+                      <h4 className="font-semibold text-gray-900 mb-3">Full Question Content</h4>
+                      <div className="bg-white border rounded-lg p-4">
                         <RichTextDisplay content={question.content} />
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-semibold">Category:</span> {question.category}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">Status:</span>
+                          <span className="text-gray-900">{question.status}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">Has Answer:</span>
+                          <span className="text-gray-900">{question.answerCount > 0 ? "Yes" : "No"}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-semibold">Created:</span> {new Date(question.createdAt).toLocaleString()}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Updated:</span> {new Date(question.updatedAt).toLocaleString()}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Author ID:</span> {question.authorId}
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">Created:</span>
+                          <span className="text-gray-900">{new Date(question.createdAt).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">Updated:</span>
+                          <span className="text-gray-900">{new Date(question.updatedAt).toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -401,9 +429,11 @@ export function AdminQuestions() {
         })}
 
         {questions?.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-gray-500">No questions to review</p>
+          <Card className="border-2 border-dashed border-gray-300">
+            <CardContent className="text-center py-12">
+              <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No questions to review</h3>
+              <p className="text-gray-600">Questions will appear here when users submit them.</p>
             </CardContent>
           </Card>
         )}
@@ -411,33 +441,35 @@ export function AdminQuestions() {
 
       {/* Edit Question Dialog */}
       <Dialog open={!!editingQuestion} onOpenChange={() => setEditingQuestion(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Question</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Edit Question</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Title</label>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Title</label>
               <Input
                 value={editForm.title}
                 onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                 placeholder="Question title"
+                className="w-full"
               />
             </div>
             
-            <div>
-              <label className="text-sm font-medium">Content</label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Content</label>
               <Textarea
                 value={editForm.content}
                 onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
                 placeholder="Question content"
-                rows={6}
+                rows={8}
+                className="w-full"
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Status</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Status</label>
                 <Select value={editForm.status} onValueChange={(value: any) => setEditForm({ ...editForm, status: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -449,8 +481,8 @@ export function AdminQuestions() {
                 </Select>
               </div>
               
-              <div>
-                <label className="text-sm font-medium">Category</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Category</label>
                 <Select value={editForm.category} onValueChange={(value) => setEditForm({ ...editForm, category: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -466,8 +498,8 @@ export function AdminQuestions() {
               </div>
             </div>
             
-            <div>
-              <label className="text-sm font-medium">Tags (comma-separated)</label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Tags (comma-separated)</label>
               <Input
                 value={editForm.tags}
                 onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
@@ -475,7 +507,7 @@ export function AdminQuestions() {
               />
             </div>
             
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-end space-x-3 pt-4 border-t">
               <Button variant="outline" onClick={() => setEditingQuestion(null)}>
                 Cancel
               </Button>
@@ -485,8 +517,9 @@ export function AdminQuestions() {
                   data: editForm 
                 })}
                 disabled={updateQuestionMutation.isPending}
+                className="bg-orange-600 hover:bg-orange-700"
               >
-                Save Changes
+                {updateQuestionMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>
@@ -495,15 +528,16 @@ export function AdminQuestions() {
 
       {/* Answer Question Dialog */}
       <Dialog open={!!answeringQuestion} onOpenChange={() => setAnsweringQuestion(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {isEditingAnswer ? "Edit Answer" : "Answer Question"}: {answeringQuestion?.title}
+            <DialogTitle className="text-xl font-semibold">
+              {isEditingAnswer ? "Edit Answer" : "Answer Question"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-md">
-              <h4 className="font-semibold mb-2">Question:</h4>
+          <div className="space-y-6 py-4">
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <h4 className="font-semibold text-gray-900 mb-3">Question:</h4>
+              <h5 className="font-medium text-gray-800 mb-2">{answeringQuestion?.title}</h5>
               <RichTextDisplay content={answeringQuestion?.content || ""} />
             </div>
             
@@ -514,9 +548,9 @@ export function AdminQuestions() {
               label="Your Answer"
             />
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Category</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Category</label>
                 <Select value={answerForm.category} onValueChange={(value) => setAnswerForm({ ...answerForm, category: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -531,8 +565,8 @@ export function AdminQuestions() {
                 </Select>
               </div>
               
-              <div>
-                <label className="text-sm font-medium">Tags (comma-separated)</label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Tags (comma-separated)</label>
                 <Input
                   value={answerForm.tags}
                   onChange={(e) => setAnswerForm({ ...answerForm, tags: e.target.value })}
@@ -541,7 +575,7 @@ export function AdminQuestions() {
               </div>
             </div>
             
-            <div className="bg-blue-50 p-3 rounded-md">
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
               <p className="text-sm text-blue-800">
                 <strong>Note:</strong> {isEditingAnswer 
                   ? "Updating this answer will save your changes." 
@@ -550,7 +584,7 @@ export function AdminQuestions() {
               </p>
             </div>
             
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-end space-x-3 pt-4 border-t">
               <Button variant="outline" onClick={() => setAnsweringQuestion(null)}>
                 Cancel
               </Button>
@@ -560,9 +594,10 @@ export function AdminQuestions() {
                   data: answerForm 
                 })}
                 disabled={submitAnswerMutation.isPending || !answerForm.content.trim()}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-orange-600 hover:bg-orange-700"
               >
-                {isEditingAnswer ? "Update Answer" : "Submit Answer & Publish Question"}
+                {submitAnswerMutation.isPending ? "Submitting..." : 
+                 isEditingAnswer ? "Update Answer" : "Submit Answer & Publish"}
               </Button>
             </div>
           </div>

@@ -52,21 +52,21 @@ export function Navbar() {
   }
 
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-24">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
               <img 
                 src="/ta_logo.svg" 
                 alt="Tewahedo Answers" 
-                className="h-8 w-auto" 
+                className="h-10 w-auto" 
               />
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-4">
             <Link href="/" className="text-gray-700 hover:text-orange-600 px-3 py-2 text-sm font-medium">
               Home
             </Link>
@@ -78,11 +78,6 @@ export function Navbar() {
                 Ask Question
               </Link>
             )}
-            {/* {session?.user?.isAdmin && (
-              <Link href="/admin" className="text-gray-700 hover:text-orange-600 px-3 py-2 text-sm font-medium">
-                Admin
-              </Link>
-            )} */}
 
             {/* Auth Section */}
             {authError ? (
