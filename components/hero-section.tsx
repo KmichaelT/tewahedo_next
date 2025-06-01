@@ -3,9 +3,8 @@ import Link from "next/link"
 
 export function HeroSection() {
   return (
-<section className="py-16">
-      <div className="container">
-        <div className="flex flex-col rounded-xl border lg:flex-row  bg-muted ">
+<section className="pb-16">
+          <div className="flex flex-col rounded-xl border lg:flex-row  bg-muted ">
           <div className="grow px-8 py-8 lg:px-16">
             <div className="mt-4 max-w-xl">
               <h2 className="text-2xl font-semibold md:text-3xl">
@@ -37,7 +36,7 @@ export function HeroSection() {
             </div> 
           </div>
         </div>
-      </div> 
+ 
     </section>
   )
 }

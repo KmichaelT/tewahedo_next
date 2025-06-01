@@ -95,7 +95,7 @@ export function QuestionsList() {
   }
 
   return (
-    <div className="container space-y-6">
+    <div className=" space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Questions</h2>
         <div className="text-sm text-muted-foreground">
@@ -142,7 +142,7 @@ export function QuestionsList() {
                     {question.title}
                   </h2>
                 </CardTitle>
-                <Badge className={getCategoryColor(question.category)}>
+                <Badge className={`w-fit ${getCategoryColor(question.category)}`}>
                   <p className="text-sm">{question.category}</p>
                 </Badge>
               </CardHeader>
@@ -152,17 +152,7 @@ export function QuestionsList() {
                 </p>
               </CardContent>
               <CardFooter className="flex w-full items-end justify-between gap-5 p-0 lg:flex-row">
-                <div className="flex-1">
-                  <Link href={`/questions/${question.id}`}>
-                    <Button size="sm" className="rounded-full bg-orange-600 hover:bg-orange-700">
-                      <span className="flex items-center gap-2">
-                        {question.answerCount > 0 ? "See Answer" : "Be First to Answer"}
-                        <ArrowRight className="h-4 w-4" />
-                      </span>
-                    </Button>
-                  </Link>
-                </div>
-                <div className="h-8 w-8">
+                                <div className="h-8 w-8">
                   <Avatar className="h-8 w-8">
                     <AvatarImage 
                       src={question.authorImage} 
@@ -173,6 +163,17 @@ export function QuestionsList() {
                     </AvatarFallback>
                   </Avatar>
                 </div>
+                <div className=" ">
+                  <Link href={`/questions/${question.id}`}>
+                    <Button size="sm" className="rounded-full bg-orange-600 hover:bg-orange-700">
+                      <span className="flex items-center gap-2">
+                        {question.answerCount > 0 ? "See Answer" : "Be First to Answer"}
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </Button>
+                  </Link>
+                </div>
+
               </CardFooter>
             </Card>
           ))

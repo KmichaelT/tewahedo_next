@@ -13,6 +13,7 @@ import { Heart, CheckCircle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { Separator } from "@radix-ui/react-dropdown-menu"
 
 interface Answer {
   id: number
@@ -156,16 +157,11 @@ export function AnswerDisplay({ answer, onAccept, canAccept }: AnswerDisplayProp
                   {answer.author.name}
                 </span>
                 {answer.author.isAdmin && (
-                  <Badge variant="secondary" className="text-xs">
-                    Church Leader
+                  <Badge className="bg-green-100 text-green-800 border-green-200 p-1">
+                    <CheckCircle className="h-3 w-3  " />
                   </Badge>
                 )}
-                {answer.isAccepted && (
-                  <Badge className="bg-green-100 text-green-800 border-green-200">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Accepted Answer
-                  </Badge>
-                )}
+ 
               </div>
               <span className="text-sm text-gray-500">
                 {formatDistanceToNow(new Date(answer.createdAt), { addSuffix: true })}
@@ -178,6 +174,7 @@ export function AnswerDisplay({ answer, onAccept, canAccept }: AnswerDisplayProp
         <RichTextDisplay content={answer.content} className="mb-4" />
 
         {/* Answer Actions - Interactive like button */}
+ 
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="flex items-center space-x-4">
             <Button 
@@ -194,19 +191,7 @@ export function AnswerDisplay({ answer, onAccept, canAccept }: AnswerDisplayProp
               <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
               <span>{localVotes}</span>
             </Button>
-          </div>
-
-          {canAccept && !answer.isAccepted && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onAccept?.(answer.id)}
-              className="border-green-200 text-green-700 hover:bg-green-50"
-            >
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Accept Answer
-            </Button>
-          )}
+          </div> 
         </div>
       </CardContent>
     </Card>

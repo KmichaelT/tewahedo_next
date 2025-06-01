@@ -116,14 +116,11 @@ export function SearchFilters({ onFiltersChange, className }: SearchFiltersProps
 
         {/* Filter Controls */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Filter by:</span>
-          </div>
+
           
           {/* Category Filter */}
           <Select value={filters.category} onValueChange={(value) => updateFilter("category", value)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="">
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>

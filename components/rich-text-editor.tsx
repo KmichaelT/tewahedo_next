@@ -1,7 +1,7 @@
 // components/rich-text-editor.tsx
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useRef, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -29,6 +29,16 @@ export function RichTextEditor({
   const editorRef = useRef<HTMLDivElement>(null)
   const [showPreview, setShowPreview] = useState(false)
 
+  // Set initial content and update when value changes externally
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      // Only update if the content is different and not currently focused
+      if (document.activeElement !== editorRef.current) {
+        editorRef.current.innerHTML = value
+      }
+    }
+  }, [value])
+
   const executeCommand = useCallback((command: string, value?: string) => {
     if (typeof document !== 'undefined') {
       document.execCommand(command, false, value)
@@ -43,9 +53,13 @@ export function RichTextEditor({
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML)
+      const newContent = editorRef.current.innerHTML
+      // Only update if content actually changed to prevent cursor jumping
+      if (newContent !== value) {
+        onChange(newContent)
+      }
     }
-  }, [onChange])
+  }, [onChange, value])
 
   const insertBlockquote = useCallback(() => {
     executeCommand('formatBlock', 'blockquote')
@@ -224,7 +238,6 @@ export function RichTextEditor({
                 "[&:empty]:before:content-[attr(data-placeholder)]",
                 "[&:empty]:before:text-gray-400"
               )}
-              dangerouslySetInnerHTML={{ __html: value }}
               onInput={handleInput}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}

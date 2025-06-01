@@ -10,7 +10,8 @@ import { RichTextDisplay } from "./rich-text-display"
 import { Heart, Eye, MessageCircle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils" 
+import { Separator } from "@/components/ui/separator"
 
 interface Question {
   id: number
@@ -122,14 +123,10 @@ export function QuestionDisplay({ question, showFullContent = false, commentCoun
       {/* Question Header */}
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{question.title}</h1>
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <span>Asked by {authorName}</span>
-            <span>{formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}</span>
-            <Badge className={getCategoryColor(question.category)}>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{question.title}</h1>            <Badge className={getCategoryColor(question.category)}>
               {question.category}
             </Badge>
-          </div>
+
         </div>
       </div>
 
@@ -138,10 +135,9 @@ export function QuestionDisplay({ question, showFullContent = false, commentCoun
         <RichTextDisplay 
           content={showFullContent ? question.content : question.content.substring(0, 300) + (question.content.length > 300 ? '...' : '')}
         />
-      </div>
-
-      {/* Question Stats - Interactive likes and functional counts */}
-      <div className="flex items-center space-x-6 text-sm text-gray-600">
+       
+        <Separator className="my-3"/>
+              <div className="flex items-center space-x-6 text-sm text-gray-600">
         <Button
           variant="ghost"
           size="sm"
@@ -160,15 +156,17 @@ export function QuestionDisplay({ question, showFullContent = false, commentCoun
         <div className="flex items-center space-x-1">
           <MessageCircle className="h-4 w-4" />
           <span>{commentCount}</span>
-        </div>
-        
-        {question.views && (
-          <div className="flex items-center space-x-1">
-            <Eye className="h-4 w-4" />
-            <span>{question.views} views</span>
-          </div>
-        )}
+        </div> 
       </div>
+      </div>
+                <div className="flex items-center space-x-4 text-sm text-gray-500">
+            <span>Asked by {authorName}</span>
+            <span>{formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}</span>
+
+          </div>
+
+      {/* Question Stats - Interactive likes and functional counts */}
+
     </div>
   )
 }

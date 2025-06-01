@@ -290,13 +290,6 @@ export function AdminQuestions() {
                         >
                           {question.title}
                         </CardTitle>
-                        {/* Category Pill */}
-                        <Badge 
-                          variant="outline" 
-                          className={cn("flex-shrink-0 text-xs px-3 py-1 rounded-full font-medium", getCategoryColor(question.category))}
-                        >
-                          {question.category}
-                        </Badge>
                       </div>
                     </div>
                     

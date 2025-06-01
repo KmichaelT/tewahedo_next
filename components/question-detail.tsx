@@ -63,7 +63,7 @@ export function QuestionDetail({ questionId }: { questionId: number }) {
                 ...answer,
                 author: {
                   id: answer.authorId,
-                  name: answer.authorName || answer.authorDisplayName || "Church Leader",
+                  name: answer.authorName,
                   image: answer.authorImage,
                   isAdmin: answer.authorIsAdmin
                 }
