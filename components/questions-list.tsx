@@ -134,17 +134,14 @@ export function QuestionsList() {
           sortedQuestions.map((question: Question) => (
             <Card
               key={`question-${question.id}`}
-              className="flex w-full flex-col justify-between gap-10 rounded-[.5rem] border bg-background p-5 hover:shadow-lg transition-shadow duration-300"
+              className="flex w-full flex-col justify-between gap-4 rounded-[.5rem] border bg-background p-5 hover:shadow-lg transition-shadow duration-300"
             >
               <CardHeader className="flex w-full flex-col justify-between gap-4 p-0 lg:flex-row lg:items-start">
-                <CardTitle className="flex w-fit items-start justify-start gap-2.5">
-                  <h2 className="text-xl leading-tight font-bold tracking-tight line-clamp-2">
+                <CardTitle className="flex w-full items-start justify-start gap-2.5">
+                  <h2 className="text-xl leading-tight font-semibold tracking-tight line-clamp-2">
                     {question.title}
                   </h2>
                 </CardTitle>
-                <Badge className={`w-fit ${getCategoryColor(question.category)}`}>
-                  <p className="text-sm">{question.category}</p>
-                </Badge>
               </CardHeader>
               <CardContent className="p-0">
                 <p className="max-w-full text-base leading-[1.4] font-medium text-muted-foreground">
