@@ -99,8 +99,15 @@ export async function middleware(request: NextRequest) {
     const protectedRoutes = ["/ask", "/api/questions", "/api/answers", "/api/comments"]
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
     
-    // Allow GET requests to /api/questions without auth
-    const isPublicRead = pathname === "/api/questions" && request.method === "GET"
+    // Allow GET requests to read-only endpoints without auth
+    const isPublicRead = (
+      (pathname === "/api/questions" || pathname.match(/^\/api\/questions\/\d+$/)) ||
+      pathname.match(/^\/api\/answers\/\d+$/) ||
+      pathname.match(/^\/api\/questions\/\d+\/comments$/) ||
+      pathname.match(/^\/api\/questions\/\d+\/like$/) ||
+      pathname.match(/^\/api\/answers\/like\/\d+$/) ||
+      pathname.match(/^\/api\/comments\/\d+\/like$/)
+    ) && request.method === "GET"
     
     if (isProtectedRoute && !isPublicRead) {
       if (!token) {
