@@ -28,7 +28,7 @@ export default function About() {
   return (
     <div className="min-h-screen ">
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 pt-16">
         <h1 className="text-4xl font-bold mb-6 text-center">About Tewahedo Answers</h1>
         <p className="text-xl text-center max-w-3xl mx-auto text-muted-foreground mb-12">
           A community-driven platform dedicated to answering questions about the
@@ -38,7 +38,6 @@ export default function About() {
 
       {/* Feature Section */}
       <section className="py-16">
-        <div className="container">
           <div className="grid gap-x-20 rounded-lg border border-border bg-accent p-6 md:grid-cols-2 md:p-8 lg:p-16">
             <div className="mb-8 flex justify-center lg:justify-start xl:mb-0">
               <img
@@ -63,11 +62,10 @@ export default function About() {
               ))}
             </ul>
           </div>
-        </div>
       </section>
 
       {/* Mission Statement */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 pb-16">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl font-bold mb-6">Our Mission</h2>
           <p className="text-muted-foreground">
